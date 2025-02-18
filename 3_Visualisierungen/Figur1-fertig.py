@@ -2,10 +2,10 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-disney = pd.read_csv('/Users/student/Desktop/2Semester/Data Visualization/Abgabe/1_Datensets/disney_plus_titles_cleaned.csv')
+disney = pd.read_csv('1_Datenset/disney_plus_titles.csv')
 Typ_Disney = disney['type'].value_counts()
 
-netflix = pd.read_csv('/Users/student/Desktop/2Semester/Data Visualization/Abgabe/1_Datensets/netflix_titles_cleaned.csv')
+netflix = pd.read_csv('1_Datenset/netflix_titles.csv')
 Typ_Netflix = netflix['type'].value_counts()
 
 netflix_kleiner_teil_index = Typ_Netflix.idxmin()

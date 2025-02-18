@@ -5,8 +5,8 @@ from dash import dcc, html
 from dash.dependencies import Input, Output
 
 # Load Disney and Netflix data
-disney = pd.read_csv('/Users/student/Desktop/2Semester/Data Visualization/Abgabe/1_Datensets/disney_plus_titles_cleaned.csv')
-netflix = pd.read_csv('/Users/student/Desktop/2Semester/Data Visualization/Abgabe/1_Datensets/netflix_titles_cleaned.csv')
+disney = pd.read_csv('1_Datenset/disney_plus_titles.csv')
+netflix = pd.read_csv('1_Datenset/netflix_titles.csv')
 
 # Disney data processing
 disney_movies_data = disney[(disney['type'] == 'Movie') & (disney['release_year'] >= 1940) & (disney['release_year'] <= 2020)]

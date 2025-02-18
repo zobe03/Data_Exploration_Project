@@ -5,8 +5,8 @@ from dash import dcc, html
 from dash.dependencies import Input, Output
 
 # Daten für die Weltkarte vorbereiten
-netflix = pd.read_csv('/Users/student/Desktop/2Semester/Data Visualization/Abgabe/1_Datensets/netflix_titles_cleaned.csv')
-disney = pd.read_csv('/Users/student/Desktop/2Semester/Data Visualization/Abgabe/1_Datensets/disney_plus_titles_cleaned.csv')
+netflix = pd.read_csv('1_Datenset/disney_plus_titles.csv')
+disney = pd.read_csv('1_Datenset/netflix_titles.csv')
 
 
 countries_netflix = netflix['country'].str.split(', ', expand=True).stack()

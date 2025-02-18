@@ -7,8 +7,8 @@ from dash.dependencies import State
 
 
 # Daten einlesen
-disney = pd.read_csv('/Users/student/Desktop/2Semester/Data Visualization/Abgabe/1_Datensets/disney_plus_titles_cleaned.csv')
-netflix = pd.read_csv('/Users/student/Desktop/2Semester/Data Visualization/Abgabe/1_Datensets/netflix_titles_cleaned.csv')
+disney = pd.read_csv('1_Datenset/disney_plus_titles.csv')
+netflix = pd.read_csv('1_Datenset/netflix_titles.csv')
 
 # Genres für Disney+ und Netflix zusammenführen und eindeutige Genres erhalten
 genres_disney = disney['listed_in'].str.split(', ', expand=True).stack()

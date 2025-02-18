@@ -2,8 +2,8 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-disney = pd.read_csv('/Users/student/Desktop/2Semester/Data Visualization/Abgabe/1_Datensets/disney_plus_titles_cleaned.csv')
-netflix = pd.read_csv('/Users/student/Desktop/2Semester/Data Visualization/Abgabe/1_Datensets/netflix_titles_cleaned.csv')
+disney = pd.read_csv('1_Datenset/disney_plus_titles.csv')
+netflix = pd.read_csv('1_Datenset/netflix_titles.csv')
 
 # Disney Genres
 disney_genres = disney['listed_in'].str.split(', ', expand=True).stack()
