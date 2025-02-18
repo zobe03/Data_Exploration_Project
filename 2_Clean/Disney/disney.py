@@ -4,7 +4,7 @@ import numpy as np
 import os
 import plotly as pl
 
-df = pd.read_csv(os.path.join(os.path.dirname(__file__), '/Users/student/Desktop/2Semester/Data Visualization/Abgabe/1_Datensets/disney_plus_titles.csv'), sep=',')
+df = pd.read_csv(os.path.join(os.path.dirname(__file__), '/Users/student/Desktop/Data_Exploration_Project/1_Datenset/disney_plus_titles.csv'), sep=',')
 
 print('Info:')
 print(df.info())
@@ -25,7 +25,7 @@ print('--------------------------------------------------------------------')
 print('Fehlende Werte bei Direktoren: ')
 nodirector = df[df['director'].isnull()]
 print(nodirector)
-AnzahlZellen = np.product(df.shape)
+AnzahlZellen = np.prod(df.shape)
 print("Anzahl Zellen: ", AnzahlZellen)
 NullwertZellen = df.isnull().sum()
 print("Anzahl der Nullwertzellen in jeder Spalte: ", NullwertZellen)
@@ -266,4 +266,4 @@ disney_genre_counts = disney_genre.value_counts()
 print("Anzahl der Genres:", disney_genre_counts)
 
 
-df.to_csv('/Users/student/Desktop/2Semester/Data Visualization/Abgabe/1_Datensets/disney_plus_titles_cleaned.csv', index=False)
+df.to_csv('/Users/student/Desktop/Data_Exploration_Project/1_Datenset/disney_plus_titles_cleaned.csv', index=False)
