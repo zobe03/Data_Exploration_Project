@@ -64,7 +64,7 @@ print('--------------------------------------------------------------------')
             #print(NeueDurationgSpalte)
 
 
-print('Spalten, wo leere Zellen in date_added, rating sind, löschen')
+print('Zeilen, wo leere Zellen in date_added, rating sind, löschen')
 df.dropna(subset=['date_added', 'rating'], inplace=True)
 print(df.isnull().sum())
 print(df.shape)
@@ -153,7 +153,7 @@ movies_per_country = df_countries['Movie_Count'].value_counts()
 print(movies_per_country)
 
 print('--------------------------------------------------------------------')
-# Countries zerlegen in mehrere Spalten
+# Directors zerlegen in mehrere Spalten
 df_copy_2 = df.copy()
 df_copy_2['director'] = df_copy_2['director'].str.split(',')
 max_directors = df_copy_2['director'].apply(len).max()

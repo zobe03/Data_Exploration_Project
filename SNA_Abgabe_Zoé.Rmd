@@ -1,0 +1,1402 @@
+---
+output:
+  pdf_document: 
+    number_sections: true
+    fig_caption: true
+    keep_tex: true
+    latex_engine: xelatex
+    extra_dependencies: ["float"]
+    includes:
+      in_header: preamble.tex
+  html_document: default
+bibliography: zotero_references.bib
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+\pagenumbering{Roman}
+
+\begin{titlepage}
+    \centering
+    \vspace*{0.5cm} 
+
+    \Huge\textbf{\themaMeinerArbeit} \\[1.5cm]
+    \LARGE\textit{Social Network Analysis} \\[1cm]
+    
+    \vspace{1.5cm}
+
+    \Large SNA-Seminararbeit \\[0.5cm]
+    vorgelegt am 24. November 2024 \\[2cm]
+
+    \large
+    Fakultät Wirtschaft und Gesundheit \\
+    Studiengang Wirtschaftsinformatik \\
+    Kurs WWI2023F \\[2cm]
+
+    \textbf{von} \\[0.5cm]
+    Zoé Csilla Bede \\
+    DHBW Stuttgart \\[2cm]
+
+    \textbf{Betreuer:} \\
+    Mandy Badermann
+
+    \vfill 
+\end{titlepage}
+
+\newpage 
+\renewcommand{\contentsname}{Inhaltsverzeichnis}
+\tableofcontents
+
+
+\newpage 
+\renewcommand{\listfigurename}{Abbildungsverzeichnis}
+\listoffigures
+\addcontentsline{toc}{section}{Abbildungsverzeichnis}
+
+\newpage 
+\renewcommand{\listtablename}{Tabellenverzeichnis}
+\listoftables
+\addcontentsline{toc}{section}{Tabellenverzeichnis}
+
+\newpage 
+\pagenumbering{arabic}
+
+# Einleitung 
+
+Graue Wölfe (Canis lupus) sind soziale Raubtiere, die in Rudeln leben und innerhalb ihrer Gruppen komplexe Hierarchien aufrechterhalten.^[Vgl. @reinhardt_leben_2007]
+Ihre Populationen erstrecken sich über weite Teile Nordamerikas^[Vgl. @blanche_wolfe_2006], darunter auch die Wildnis von Alberta in Kanada.^[Vgl. @laetsch_wolfe_2016] 
+Insbesondere die dort lebenden Wölfe sind gut an die lokalen klimatischen und geographischen Bedingungen angepasst, was sich in ihrer Lebensweise und Sozialstruktur widerspiegelt.^[Vgl. @laetsch_wolfe_2016]
+Als Spitzenprädatoren spielen sie eine wichtige Rolle im Ökosystem^[Vgl. @zimen_wolfe_1997 vgl. dazu auch @reinhardt_leben_2007] und beeinflussen durch ihre Jagd- und Wandergewohnheiten das Verhalten anderer Tierarten^[Vgl. @blanche_wolfe_2006 vgl. dazu auch @zimen_wolfe_1997] sowie die Vegetationsstruktur^[Vgl. @blanche_wolfe_2006].
+
+## Forschungsfrage und Zielsetzung
+Die zentrale Forschungsfrage dieser Arbeit lautet 
+"Wie variieren die sozialen Interaktionen von Wölfen in Abhängigkeit von den Jahreszeiten? 
+Diese Frage ist relevant, da untersucht wird, wie jahreszeitliche Einflüsse die Sozialstruktur und Interaktionsmuster der Wölfe prägen und welchen Einfluss dies auf die Stabilität und Dynamik der Rudel hat. 
+Der Fokus liegt dabei auf der Analyse der Netzwerkzentralität einzelner Wölfe und ihrer Zugehörigkeit zu verschiedenen sozialen Gemeinschaften innerhalb der Population. 
+
+Ziel dieser Arbeit ist es, die zentrale Position und Bedeutung einzelner Wölfe innerhalb der Netzwerkstruktur zu identifizieren und die Faktoren zu bestimmen, die zur Bildung und Aufrechterhaltung sozialer Gruppen beitragen. 
+Besonderes Augenmerk wird dabei auf saisonale Unterschiede in der Häufigkeit von Interaktionen und der Zusammensetzung von Rudeln gelegt, um ein besseres Verständnis des Einflusses der Jahreszeiten auf das Sozialverhalten von Wölfen zu erhalten. 
+
+Die Arbeit untersucht und analysiert drei zentrale Hypothesen zum Sozialverhalten von Wölfen:
+\begin{enumerate}
+  \item \textbf{Saisonale Variation der Sozialstruktur}: Die Zusammensetzung und Interaktionshäufigkeit der Rudel variiert je nach Jahreszeit. Im Winter könnten die Wölfe engere Bindungen zur Sicherung des Überlebens aufbauen, während im Frühling intensivere Interaktionen innerhalb der Rudel auftreten. \\
+
+  \item \textbf{Isolation der Rudel}: Die Rudel interagieren ausschließlich intern, ohne soziale Bindungen zu anderen Rudeln, was jedes Rudel zu einer weitgehend isolierten sozialen Einheit macht. \\
+
+  \item \textbf{Zentrale Position der Alpha-Wölfe}: Die Alpha-Wölfe nehmen eine zentrale Position innerhalb der Rudel ein und beeinflussen maßgeblich die sozialen Interaktionen und Hierarchien. \\
+\end{enumerate}
+Diese Hypothesen werden analysiert und auf ihre Richtigkeit überprüft. 
+
+Diese Arbeit analysiert die sozialen Strukturen und Interaktionen einer Wolfspopulation über verschiedene Jahreszeiten hinweg. 
+Es wird untersucht, wie saisonale Veränderungen das Verhalten der Wölfe und ihre Interaktionen innerhalb und zwischen Rudeln beeinflussen.  
+```{r}
+# Daten laden 
+original_wolfdata <- read.csv("../Abgabe_Zoé/Datenset/Boutin Alberta Grey Wolf.csv")  # Datei laden # nolint: line_length_linter.
+wolfdata <- read.csv("../Abgabe_Zoé/Datenset/wolfdata.csv")  # Datei laden # nolint: line_length_linter.
+woelfe <- read.csv("../Abgabe_Zoé/Datenset/wolfknoten2.csv")  # Datei laden # nolint: line_length_linter.
+vert.attr <- read.csv("../Abgabe_Zoé/Datenset/reference_data.csv")  # Datei laden # nolint: line_length_linter.
+```
+
+## Daten untersuchen
+
+### Datenbasis und Datenaufbereitung
+
+```{r warning=FALSE, message=FALSE}
+library(igraph)
+library(igraphdata)
+library(dplyr)
+library(ggplot2)
+library(leaflet)
+library(ggraph)
+library(ggthemes)
+library(geosphere)
+library(webshot)
+library(tidyr)
+library(lubridate)
+library(htmlwidgets)
+library(tweenr)
+library(tidyverse)
+library(sf)
+library(reshape2)
+library(kableExtra)
+```
+```{r}
+class(original_wolfdata)
+#View(wolfdata) ->  Dieser Befehl führt zu Problemen beim knitten und ist daher auskommentiert
+summary(original_wolfdata)
+head(original_wolfdata, 5)
+```
+
+Der analysierte Datensatz, der ursprünglich von Stan Boutin in der Movebank erstellt wurde, umfasste 239.194 GPS-Datensätze von 44 Wölfen sowie Referenzdaten zu den einzelnen Tieren. ^[@boutin_boutin_2018]
+Aufgrund zahlreicher fehlender und fehlerhafter Einträge musste dieser umfangreiche Datensatz bereinigt werden, um ihn für die Analyse und eine Netzwerkdarstellung (mit Hilfe von igraph) nutzbar zu machen. 
+
+Die Datenbereinigung wurde in mehreren Schritten durchgeführt:
+Zunächst wurden nur GPS-Daten mit einer Fehlertoleranz von maximal 5 ausgewählt, um eine hohe Datenqualität zu gewährleisten. 
+Außerdem wurden nur Wölfe beibehalten, für die in den Referenzdaten auch Informationen zum Geschlecht vorlagen. 
+Nach der Bereinigung und Speicherung der Referenzdaten wurde die 19. Zeile manuell gelöscht. 
+Für Wolf 17 wurde einmal für ca. 9 Monate und ein andermal für ca. 2 Monate ein GPS-Tracker aktiviert und danach wieder entfernt. 
+Da Wolf 17 dadurch 2-mal in der Liste enthalten war, wurde eine Zeile gelöscht. 
+
+Die verbleibenden Daten wurden in die vier Jahreszeiten aufgeteilt und separat gespeichert. 
+Zur besseren Übersicht wurden die Identifikationsnummern der Wölfe in die Nummern 1 bis 28 umbenannt. 
+Außerdem wurden die Längengraddaten auf eine und die Breitengraddaten auf zwei Nachkommastellen gerundet. 
+Diese Kombinationen dienten dann als Grundlage für die Berechnung der Treffpunkte zwischen den Wölfen.^[@bede_cleaning_2024]
+
+### Wölfe-Datensatz Überblick
+
+```{r}
+interaction_summary <- woelfe %>%
+  group_by(wolf_1, wolf_2) %>%
+  summarize(total_treffen = sum(treffen), .groups = 'drop')
+
+# Sicherstellen, dass alle Wölfe als Knoten vorhanden sind
+# Verwenden von `animal.id` aus `reference_data` für die vollständige Knotenliste
+unique_wolves <- unique(c(vert.attr$animal.id, interaction_summary$wolf_1, interaction_summary$wolf_2))
+
+# Zusammenführen von unique_wolves mit reference_data, um das Attribut animal.sex einzuschließen
+vert_data <- data.frame(animal.id = unique_wolves) %>%
+  left_join(vert.attr, by = c("animal.id" = "animal.id")) %>%
+  distinct(animal.id, .keep_all = TRUE)
+
+
+interaction_igraph <- graph_from_data_frame(
+  interaction_summary,
+  directed = FALSE,
+  vertices = vert_data)
+E(interaction_igraph)$weight <- interaction_summary$total_treffen
+V(interaction_igraph)$sex <- V(interaction_igraph)$animal.sex
+
+summary(interaction_igraph)
+```
+```{r warning=FALSE, message=FALSE}
+
+png("Bilder/gesamtwolfsnetzwerk.png", width = 800, height = 500, res = 120)
+ggraph(interaction_igraph, layout = "sugiyama") +
+  geom_edge_link(aes(color = weight),
+                 end_cap = circle(3, 'mm'),
+                 start_cap = circle(3, 'mm'),
+                 width = 1) +
+  geom_node_point(aes(fill = sex), color = "transparent", shape = 21, size = 7) +
+  geom_node_text(aes(label = name), color = "black", size = 4, fontface = "bold") +
+  scale_fill_manual(values = c("m" = "lightblue", "f" = "pink"), name = "Geschlecht") + 
+  scale_edge_colour_gradient(low = "#eaadad", high = "#300000", name = "Anzahl\nBegegnungen") +  
+  theme_graph(base_family = 'Helvetica', base_size = 10) +
+  theme(legend.position = "bottom")
+dev.off()
+
+```
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{Bilder/gesamtwolfsnetzwerk.png}
+\caption{Gesamtes Wolfsnetzwerk mit Interaktionen und Geschlecht der Wölfe}
+\end{figure}
+
+
+Nach der Bereinigung standen Daten von 28 Wölfen (Knoten) und 31 Begegnungen (Kanten) für die weitere Analyse der Netzwerk- und Sozialstruktur zur Verfügung. 
+Der bereinigte Datensatz umfasst 13 Weibchen und 15 Männchen. 
+Es fällt bereits auf, dass der Rüde 1 als Einzelgänger agiert und keinen Kontakt zu den anderen Wölfen hat.
+
+**Gewichtung und Bindungsstärke**
+
+```{r}
+edges_weight <- E(interaction_igraph)$weight
+
+as.data.frame(table(edges_weight))
+
+total_weight <- sum(edges_weight)
+average_weight <- mean(edges_weight)
+median_weight <- median(edges_weight)
+
+total_weight <- format(round(total_weight, 0), nsmall = 0)
+average_weight <- format(round(average_weight, 2), nsmall = 2)
+median_weight <- format(round(median_weight, 0), nsmall = 0)
+
+weight_summary_df <- data.frame(
+  Statistik = c("Gesamtgewichtung", "Durchschnittliche Gewichtung", "Median der Gewichtung"),
+  Wert = c(total_weight, average_weight, median_weight)
+)
+
+knitr::kable(
+  weight_summary_df, 
+  align = "c", 
+  col.names = c("", "Wert"), 
+  caption = "Gewichtung der Kanten im Wolfsnetzwerk"
+)
+
+```
+
+Die Gewichtung der Kanten im Netzwerk gibt an, wie viele Tage zwei Wölfe zusammen verbracht haben und dient somit als Maß für die Intensität ihrer sozialen Bindung. 
+Häufige Gewichte von nur 1 oder 2 Tagen deuten auf sporadische Begegnungen hin, während seltene hohe Werte von 117, 123 oder 202 Tagen auf eine enge und dauerhafte Bindung zwischen den Tieren hinweisen. 
+Der Mittelwert der Gewichte liegt bei ca. 43 mit einem Median von 25, was insgesamt auf eine relativ geringe Interaktionshäufigkeit hinweist.  
+
+Die Gewichtungen geben wertvolle Hinweise auf die Struktur der sozialen Bindungen: Eine höhere Gewichtung bedeutet häufigere und stabilere Interaktionen und könnte somit auf enge soziale Bindungen zwischen bestimmten Wölfen hindeuten. 
+Solche engen Bindungen können auch auf eine hierarchische Struktur innerhalb des Rudels hindeuten, in der bestimmte Wölfe häufiger miteinander interagieren und möglicherweise eine zentrale Rolle in der sozialen Struktur einnehmen.
+
+\newpage
+**Netzwerkdichte und der Modularität**
+
+```{r}
+# Berechnung der Dichte und Modularität des gesamten Netzwerks
+network_density_gesamt <- edge_density(interaction_igraph)
+actual_connections_gesamt <- gsize(interaction_igraph)
+possible_connections_gesamt <- vcount(interaction_igraph) * (vcount(interaction_igraph) - 1) / 2
+
+community_louvain_gesamt <- cluster_louvain(interaction_igraph)
+modularity_gesamt <- modularity(community_louvain_gesamt)
+
+berechne_season_density <- function(season_data, vert.attr) {
+  season_igraph <- graph_from_data_frame(season_data, directed = FALSE, vertices = vert_data)
+  network_density <- edge_density(season_igraph)
+  actual_connections <- gsize(season_igraph)
+  possible_connections <- vcount(season_igraph) * (vcount(season_igraph) - 1) / 2
+  return(c(network_density, actual_connections, possible_connections))
+}
+
+berechne_season_modularity <- function(data, vertices) {
+  season_igraph <- graph_from_data_frame(data, directed = FALSE, vertices = vert_data)
+  community_louvain <- cluster_louvain(season_igraph)
+  modularity <- modularity(community_louvain)
+  return(modularity)
+}
+
+# Berechnung für jede Jahreszeit
+density_fruehling <- berechne_season_density(woelfe %>% filter(season == "Frühling"), vert.attr)
+density_sommer <- berechne_season_density(woelfe %>% filter(season == "Sommer"), vert.attr)
+density_herbst <- berechne_season_density(woelfe %>% filter(season == "Herbst"), vert.attr)
+density_winter <- berechne_season_density(woelfe %>% filter(season == "Winter"), vert.attr)
+density_gesamt <- c(network_density_gesamt, actual_connections_gesamt, possible_connections_gesamt)
+
+modularity_fruehling <- berechne_season_modularity(woelfe %>% filter(season == "Frühling"), vert.attr)
+modularity_sommer <- berechne_season_modularity(woelfe %>% filter(season == "Sommer"), vert.attr)
+modularity_herbst <- berechne_season_modularity(woelfe %>% filter(season == "Herbst"), vert.attr)
+modularity_winter <- berechne_season_modularity(woelfe %>% filter(season == "Winter"), vert.attr)
+
+
+density_matrix <- rbind(
+  c(density_fruehling, modularity_fruehling),
+  c(density_sommer, modularity_sommer),
+  c(density_herbst, modularity_herbst),
+  c(density_winter, modularity_winter),
+  c(density_gesamt, modularity_gesamt)
+)
+
+# Benennen der Spalten und Zeilen für klarere Darstellung
+colnames(density_matrix) <- c("Dichte", "Aktuelle Kontakte", "Mögliche Kontakte", "Modularität")
+rownames(density_matrix) <- c("Frühling", "Sommer", "Herbst", "Winter", "Gesamt")
+
+knitr::kable(
+  density_matrix,
+  align = "c",
+  col.names = c("Dichte", "Aktuelle Kontakte", "Mögliche Kontakte", "Modularität"),
+  caption = "Netzwerkdichte sowie Modularität je Jahreszeit und Gesamt"
+)
+```
+Die Netzwerkdichte und Modularität zeigen, dass die bestehenden Verbindungen der Wölfe mit nur **31 von 378 Verbindungen (<0.1%)** deutlich unter den möglichen Verbindungen liegen. 
+Dies deutet darauf hin, dass die Wölfe meist innerhalb ihres Rudels bleiben und nur selten mit anderen Rudeln interagieren. 
+Die Dichte ist im Frühling und Winter höher, was auf vermehrte soziale Interaktionen während der Paarungszeit und bei der Nahrungssuche im Winter hinweist. 
+Eine hohe Modularität deutet auf eine klare Gruppierung und stabile soziale Strukturen innerhalb der Rudel hin, mit begrenzten Verbindungen zwischen verschiedenen Gruppen. 
+
+\pagebreak
+# Analysestrategie
+
+Zur Beantwortung der Forschungsfrage und zur Überprüfung der Hypothesen werden verschiedene Analysestrategien kombiniert, um ein umfassendes Bild des sozialen Netzwerks der Wölfe zu erhalten. 
+Die Analyse konzentriert sich auf die Bedeutung einzelner Wölfe im Netzwerk, wobei drei zentrale Methoden zum Einsatz kommen:
+\begin{enumerate}
+  \item \textbf{Community Detection}: Die Wölfe werden in Gruppen eingeteilt, um herauszufinden, ob sie nur innerhalb ihres eigenen Rudels interagieren oder auch Kontakt zu anderen Rudeln haben. Diese Methode hilft, die soziale Struktur und die Grenzen der Interaktion zwischen verschiedenen Gruppen zu identifizieren. \\
+  \item \textbf{Netzwerkmetriken zur Bedeutung einzelner Wölfe}: Die Wölfe werden anhand verschiedener Zentralitätsmetriken analysiert, um ihre Bedeutung und Rolle im Netzwerk zu bestimmen:
+    \begin{itemize}
+      \item \textit{Degree-Centrality}: Diese Metrik misst die Anzahl der direkten Kontakte eines Wolfs und gibt Aufschluss über seine Popularität bzw. sein soziales Netzwerk.
+      \item \textit{Closeness-Centrality}: Diese Metrik misst den Zugang eines Wolfs zu anderen Wölfen im Netzwerk und zeigt, wie zentral ein Wolf in Bezug auf die Erreichbarkeit im gesamten Netzwerk ist.
+      \item \textit{Betweenness-Centrality} (nur für Interaktionen zwischen Rudeln): Diese Metrik misst die Vermittlerrolle eines Rudels/Wolfes zwischen verschiedenen Rudeln und zeigt, wie oft sich ein Rudel/Wolf auf den kürzesten Verbindungswegen zwischen Rudeln befindet.
+    \end{itemize}
+  \item \textbf{Rangfolge der Wölfe}: Die Ergebnisse der drei Metriken werden kombiniert und jeder Wolf wird anhand seines durchschnittlichen Ranges bewertet. Der Wolf mit dem niedrigsten Gesamtrang wird als zentralster Wolf im Netzwerk angesehen. \\
+\end{enumerate}
+
+Die Netzwerkdaten werden mit dem R-Paket igraph analysiert. 
+Nach einer umfassenden Datenbereinigung und Visualisierung als ungerichteter Graph werden Netzwerkmetriken berechnet, um zentrale Knoten und soziale Gemeinschaften zu identifizieren, einschließlich Community Detection, Degree-Centrality, Harmonic Closeness-Centrality und Betweenness-Centrality.
+
+\pagebreak
+# Ananlyse
+
+## Community-Detection 
+
+```{r}
+community_louvain <- cluster_louvain(interaction_igraph)
+
+V(interaction_igraph)$community <- membership(community_louvain)
+
+png("Bilder/gesamt_community_detection.png", width = 800, height = 500, res = 120)
+ggraph(interaction_igraph, layout = "fr") +
+    geom_edge_link(show.legend = FALSE) +
+    geom_node_point(aes(fill = as.factor(community), color = sex), shape = 21, size = 5, stroke = 1) +
+    geom_node_text(aes(label = name), color = "black", size = 3, fontface = "bold") +
+    scale_fill_brewer(palette = "Set3", name = "Community") +
+    scale_color_manual(values = c("m" = "darkblue", "f" = "#D60093"), name = "Geschlecht") +
+    theme_void() +
+    theme(legend.position = "bottom")
+dev.off()
+```
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{Bilder/gesamt_community_detection.png}
+\caption{Community-Detection der Wölfe mit dem Louvain-Algorithmus}
+\end{figure}
+```{r}
+community_df <- data.frame(
+  Wolf = V(interaction_igraph)$name,
+  Community = V(interaction_igraph)$community,
+  StudySite = vert_data$study.site[match(V(interaction_igraph)$name, vert_data$animal.id)]
+)
+
+community_packs_summary <- community_df %>%
+  group_by(Community) %>%
+  summarise(Packs = paste(unique(StudySite), collapse = ", ")) %>%
+  arrange(Community)
+
+community_packs_summary <- as_tibble(community_packs_summary)
+```
+
+Insgesamt wurden durch die Community Detection 10 verschiedene Gruppen identifiziert. Die Zuordnung der Rudel zu den jeweiligen Gemeinschaften ist wie folgt:
+```{r}
+knitr::kable(
+  community_packs_summary, 
+  col.names = c("Community", "Packs"),
+  align = "c",
+  caption = "Auflistung der Packs in jeder Community"
+)
+```
+Die Community-Analyse zeigt, dass das **Clearwater Pack**(8/10) in zwei getrennte Communities unterteilt ist. 
+Diese Teilung könnte durch territoriale oder soziale Faktoren beeinflusst sein und könnte auf eine saisonale Trennung hindeuten. 
+Interessanterweise besteht eine der Gruppen aus zwei Weibchen, während die andere aus einem Weibchen und einem Männchen besteht, was auf unterschiedliche soziale Rollen oder Bindungen innerhalb des Rudels hindeuten könnte. 
+
+Gruppe 7 umfasst das **McKay Pack**(7) und das **Frostbite Pack**(7), die einzige Comunity, die aus mehreren Rudeln besteht. 
+Die starke Interaktion zwischen diesen beiden Rudeln deutet auf viele gemeinsame Aktivitäten oder enge soziale Bindungen hin, die eine stärkere Vernetzung zwischen diesen Rudeln fördern könnten. 
+
+Das **Horizon Pack**(9) besteht aus zwei Männchen, die viel Kontakt zu zwei anderen Rudeln mit Weibchen haben.
+
+Das **Ells Pack**(2) zeigt eine bemerkenswerte Flexibilität, da es mit zwei verschiedenen Rudeln in Kontakt steht, was auf ein größeres soziales Netzwerk und möglicherweise besondere soziale Rollen innerhalb der Population hinweist. 
+
+Besonders intensiv sind die Interaktionen zwischen dem **South Athabasca Pack**(3) und dem **Grand Rapids Pack**(4), die engen Verbindungen und häufige Interaktionen aufweisen. 
+Diese starke soziale Bindung bzw. Kooperation wird durch die Zusammensetzung der beiden Rudel unterstützt: Insgesamt gibt es zwei Weibchen und vier Männchen, die fast alle miteinander verbunden sind. 
+Diese Geschlechterverteilung und die enge Bindung der Individuen könnten auf eine spezialisierte Sozialstruktur oder eine gemeinschaftliche Funktion innerhalb der Gruppen hinweisen. 
+ 
+
+$\\$
+
+**Untersuchung der Jahreszeiten**
+
+```{r fig.width=9, fig.height=4}
+# Funktion zur Erstellung und Visualisierung des Graphen für jede Jahreszeit
+summary_season_graph <- function(data, vertices, season_name) {
+  season_igraph <- graph_from_data_frame(data, directed = FALSE, vertices = vert_data)
+  E(season_igraph)$weight <- data$treffen
+  V(season_igraph)$sex <- vertices$animal.sex
+
+  summary(season_igraph)
+}
+```
+
+```{r}
+# Anpassung der plot_season_graph-Funktion
+plot_season_graph <- function(data, vertices, season_name) {
+  season_igraph <- graph_from_data_frame(data, directed = FALSE, vertices = vert_data)
+  E(season_igraph)$weight <- data$treffen
+  V(season_igraph)$sex <- vertices$animal.sex
+  V(season_igraph)$community <- V(interaction_igraph)$community[match(V(season_igraph)$name, V(interaction_igraph)$name)]
+  
+  # Definieren der Farben für die Communities (kann angepasst werden)
+  community_colors <- RColorBrewer::brewer.pal(n = max(V(season_igraph)$community, na.rm = TRUE), "Set3")
+  
+  summary_season_graph(woelfe %>% filter(season == season_name), vert.attr, season_name)
+
+  # Plot für die aktuelle Jahreszeit
+  ggraph(season_igraph, layout = 'sugiyama') + 
+    geom_edge_link(aes(color = weight),  
+                   end_cap = circle(3, 'mm'),
+                   start_cap = circle(3, 'mm'),
+                   width = 1) +  
+    geom_node_point(aes(fill = factor(community), color = sex), shape = 21, size = 5, stroke=1) +
+    geom_node_text(aes(label = name), color = "black", size = 3,  fontface = "bold") + 
+    scale_fill_manual(values = community_colors, name = "Community") +
+    scale_color_manual(values = c("m" = "darkblue", "f" = "#D60093"), name = "Sex") + 
+    scale_edge_colour_gradient(low = "#eaadad", high = "#300000", name = "Anzahl\nBegegnungen") +  
+    theme_graph(base_family = 'Helvetica', base_size =10) + 
+    theme(legend.position = "bottom")
+
+}
+```
+
+**Frühling**
+```{r}
+png("Bilder/frühling_community_detection.png", width = 850, height = 500, res = 120)
+plot_season_graph(woelfe %>% filter(season == "Frühling"), vert.attr, "Frühling")
+dev.off()
+```
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{Bilder/frühling_community_detection.png}
+\caption{Community-Detection der Wölfe im Frühling}
+\end{figure}
+
+**Sommer**
+```{r}
+png("Bilder/sommer_community_detection.png", width = 850, height = 500, res = 120)
+plot_season_graph(woelfe %>% filter(season == "Sommer"), vert.attr, "Sommer")
+dev.off()
+```
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{Bilder/sommer_community_detection.png}
+\caption{Community-Detection der Wölfe im Sommer}
+\end{figure}
+
+**Herbst**
+```{r}
+png("Bilder/herbst_community_detection.png", width = 850, height = 500, res = 120)
+plot_season_graph(woelfe %>% filter(season == "Herbst"), vert.attr, "Herbst")
+dev.off()
+```
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{Bilder/herbst_community_detection.png}
+\caption{Community-Detection der Wölfe im Herbst}
+\end{figure}
+
+**Winter**
+```{r}
+png("Bilder/winter_community_detection.png", width = 950, height = 400, res = 120)
+plot_season_graph(woelfe %>% filter(season == "Winter"), vert.attr, "Winter")
+dev.off()
+```
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{Bilder/winter_community_detection.png}
+\caption{Community-Detection der Wölfe im Winter}
+\end{figure}
+
+
+Die Wolfsbegegnungen lassen sich nach den registrierten Jahreszeiten in vier Gruppen einteilen: Frühjahr, Sommer, Herbst und Winter. 
+Die Analyse zeigt eine auffällige saisonale Variation in der Anzahl der Begegnungen: 
+Im Frühjahr und Winter treten deutlich mehr Interaktionen auf als im Sommer und Herbst. 
+Diese Unterschiede in der Häufigkeit und Intensität der Begegnungen über die Jahreszeiten hinweg deuten auf saisonale Einflüsse auf die Sozialstruktur und das Territorialverhalten der Wölfe hin.  
+
+Diese Schwankungen könnten saisonale Einflüsse auf die Sozialstruktur und das Territorialverhalten der Wölfe widerspiegeln. 
+Im Winter könnten die Bindungen innerhalb der Gruppen enger sein, da die Rudel enger zusammenarbeiten, um den harten Umweltbedingungen zu trotzen.^[Vgl. @laetsch_wolfe_2016] 
+Gegen Ende des Winters und im Frühjahr, wenn die Paarungszeit beginnt^[Vgl. @blanche_wolfe_2006], nehmen die Interaktionen zwischen den Gruppen zu, insbesondere der Kontakt zwischen Männchen und Weibchen.   
+
+Etwa neun Wochen später, mit der Geburt der Welpen, intensivieren sich die sozialen Interaktionen im Frühjahr erneut, da das gesamte Rudel aktiv an der Aufzucht der Jungen beteiligt ist. ^[Vgl. @blanche_wolfe_2006] 
+Im Sommer finden sich oft die gleichen Paare zusammen, die sich bereits im Frühjahr gebildet haben - entweder aufgrund der Welpenpflege oder aufgrund gefestigter Rudelstrukturen.  
+Beispiele hierfür sind das **McKay/Frostbite Pack** (7), das **North Pack** (5), das **Grand Rapids Pack** (4) und das **Ells Pack** (2).
+Im Winter schließen sich das **South Athabasca Pack**(3) und das **Grand Rapids Pack**(4) zusammen, um gemeinsam zu jagen und sich aufzuwärmen. 
+Auch die einzelnen Rudel **Ells Pack**(2), **McKay/Frostbite Pack**(7), **Steepbank Pack**(6) und **North Pack**(5) bleiben im Winter zusammen.
+
+***Übersicht:***
+\begin{itemize}
+  \item \texttt{Frühling}: 28 Knoten \& 22 Kanten
+  \item \texttt{Sommer}: 28 Knoten \& 6 Kanten
+  \item \texttt{Herbst}: 28 Knoten \& 7 Kanten
+  \item \texttt{Winter}: 28 Knoten \& 18 Kanten
+\end{itemize}
+
+
+\pagebreak
+## Degree-Centrality
+
+Degree Centrality zeigt die Anzahl der direkten Verbindungen, die jeder Wolf im Netzwerk zu anderen Wölfen hat. 
+Ein hoher Grad zeigt an, dass ein Wolf viele Kontakte hat und wahrscheinlich eine zentrale Rolle in der sozialen Struktur seines Rudels einnimmt. 
+Diese Metrik ist besonders nützlich, um sozial aktive oder beliebte Individuen zu identifizieren, die eine wichtige Position in ihrer sozialen Gruppe einnehmen.  
+```{r}
+degree_centrality <- degree(interaction_igraph, mode = "all")
+
+V(interaction_igraph)$degree <- degree_centrality
+
+wolf_names <- V(interaction_igraph)$name
+contact_counts <- degree_centrality
+wolf_sex <- V(interaction_igraph)$sex
+
+degree_df <- data.frame(Wolf = wolf_names, Geschlecht = wolf_sex, Anzahl_der_Kontakten = contact_counts)
+
+degree_df$Wolf <- factor(degree_df$Wolf, levels = as.character(sort(as.numeric(degree_df$Wolf))))
+
+degree_colors <- c("0" = "#f2acb1", "1" = "#e18b8b", "2" = "#cb5555", 
+                   "3" = "#a42828", "4" = "#800505", "5" = "#140101")
+
+png("Bilder/woelfe_degree_centrality.png", width = 800, height = 500, res = 120)
+ggraph(interaction_igraph, layout = "fr") +
+  geom_edge_link(color = "grey", alpha = 0.5) +
+  geom_node_point(aes(fill = factor(degree), color = sex), shape = 21, size = 5, stroke = 1) +
+  geom_node_text(aes(label = name), color = "white", size = 3, fontface="bold") +
+  scale_fill_manual(values = degree_colors, name = "Degree Centrality") +
+  scale_color_manual(values = c("m" = "darkblue", "f" = "#D60093"), name = "Geschlecht") +
+  theme_void() +
+  theme(legend.position = "bottom")
+dev.off()
+```
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{Bilder/woelfe_degree_centrality.png}
+\caption{Degree-Centrality der Wölfe im Netzwerk}
+\end{figure}
+
+Die Analyse zeigt, dass die **Wölfe 4, 12** und **15** mit einem Wert von 5 die höchste Degree-Centrality aufweisen. 
+Diese Individuen, darunter zwei Weibchen (4 und 12) und ein Männchen (15), sind besonders gut vernetzt und nehmen vermutlich eine Schlüsselfunktion in ihrem Rudel ein. 
+Durch ihre zahlreichen Verbindungen könnten sie als Vermittler oder zentrale Knoten im Netzwerk fungieren, was ihre soziale Bedeutung innerhalb der Population unterstreicht. 
+Weitere Wölfe wie **Wolf 27** und **Wolf 16** mit einer Degree-Centrality von 4 sowie die **Wölfe 2, 6, 22** und **14** mit einer Degree-Centrality von 3 spielen ebenfalls wichtige Rollen. 
+Obwohl sie etwas weniger Kontakte haben, sind auch sie aktiv in ihre Gruppen integriert und fördern die sozialen Bindungen innerhalb ihrer Rudel. 
+
+```{r}
+# Funktion zur Berechnung und Visualisierung der Degree-Centrality für jede Jahreszeit
+berechne_season_degree_centrality <- function(data, vertices, season_name) {
+  season_igraph <- graph_from_data_frame(data, directed = FALSE, vertices = vert_data)
+  E(season_igraph)$weight <- data$treffen
+  V(season_igraph)$sex <- vertices$animal.sex
+
+  degree_centrality <- degree(season_igraph, mode = "all")
+  V(season_igraph)$degree <- degree_centrality
+
+  return(degree_centrality)
+ }
+
+degree_fruehling <- berechne_season_degree_centrality(woelfe %>% filter(season == "Frühling"), vert.attr, "Frühling")
+degree_sommer <- berechne_season_degree_centrality(woelfe %>% filter(season == "Sommer"), vert.attr, "Sommer")
+degree_herbst <- berechne_season_degree_centrality(woelfe %>% filter(season == "Herbst"), vert.attr, "Herbst")
+degree_winter <- berechne_season_degree_centrality(woelfe %>% filter(season == "Winter"), vert.attr, "Winter")
+
+wolf_names <- names(degree_fruehling)
+contact_counts <- as.numeric(degree_df$Anzahl_der_Kontakten)
+wolf_sex <- V(interaction_igraph)[wolf_names]$sex
+
+# Zusammenführen der Ergebnisse in einen großen Data Frame und den ranking hinzufügenum später danach sortieren zukönnen
+result_df <- data.frame(
+  Rank = 1:length(wolf_names),
+  Wolf = wolf_names,
+  Geschlecht = wolf_sex,
+  Frühling = degree_fruehling[wolf_names],
+  Sommer = degree_sommer[wolf_names],
+  Herbst = degree_herbst[wolf_names],
+  Winter = degree_winter[wolf_names],
+  Anzahl_der_Kontakte = contact_counts
+)
+
+result_df <- result_df[order(-result_df$Anzahl_der_Kontakte), ]
+
+result_df$Rank <- 1:nrow(result_df)
+
+rownames(result_df) <- NULL
+
+knitr::kable(
+  result_df, 
+  col.names = c("Rank", "Wolf", "Geschlecht", "Frühling", "Sommer", "Herbst", "Winter", "Anzahl der Kontakte"),
+  align = "c",
+  caption = "Degree-Centrality der Wölfe in verschiedenen Jahreszeiten"
+)
+```
+
+```{r warning=FALSE, message=FALSE}
+degree_df <- data.frame(
+  Wolf = rep(V(interaction_igraph)$name, 4),
+  Degree = c(degree_fruehling, degree_sommer, degree_herbst, degree_winter),
+  Season = rep(c("Frühling", "Sommer", "Herbst", "Winter"), each = length(degree_fruehling))
+)
+
+# Degree als Faktor für die Farbskala festlegen
+degree_df$Degree <- factor(degree_df$Degree, levels = c("0", "1", "2", "3", "4", "5"))
+
+wolf_order <- result_df$Wolf
+
+degree_df$Wolf <- factor(degree_df$Wolf, levels = wolf_order)
+degree_df$Season <- factor(degree_df$Season, levels = c("Frühling", "Sommer", "Herbst", "Winter"))
+
+sex_colors <- c("m" = "darkblue", "f" = "#D60093")
+
+png("Bilder/heatmap_degree_centrality.png", width = 800, height = 500, res = 120)
+ggplot(degree_df, aes(x = Wolf, y = Season, fill = Degree)) +
+  geom_tile(color = "white") +
+  scale_fill_manual(values = degree_colors, name = "Degree Centrality") +
+  labs(x = "Wolf",
+       y = "Jahreszeit") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, face = "bold", color = sex_colors[as.character(result_df$Geschlecht)]), legend.position = "bottom")
+dev.off()
+```
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{Bilder/heatmap_degree_centrality.png}
+\caption{Heatmap der Degree-Centrality der Wölfe nach Jahreszeit}
+\end{figure}
+
+Die saisonale Analyse der Degree-Centrality zeigt, dass die sozialen Interaktionen der Wölfe je nach Jahreszeit variieren. 
+Wölfe mit hoher Degree-Centrality in bestimmten Jahreszeiten sind besonders sozial aktiv, während eine geringere Degree-Centrality auf weniger Kontakte hinweist. 
+Insbesondere **Wolf 4** zeigt eine hohe Interaktionsrate im Frühling und Winter, während seine sozialen Kontakte im Sommer abnehmen. 
+Diese saisonalen Unterschiede könnten auf Verhaltensmuster zurückzuführen sein, die eine stärkere Bindung innerhalb des Rudels während der Paarungszeit oder in den kälteren Monaten fördern, wenn das gemeinsame Überleben besonders wichtig ist. 
+ 
+
+```{r}
+degree_centrality <- degree(interaction_igraph, mode = "all")
+
+V(interaction_igraph)$degree <- degree_centrality
+
+community_degree_df <- data.frame(
+  Wolf = V(interaction_igraph)$name,
+  Community = V(interaction_igraph)$community,
+  Degree = V(interaction_igraph)$degree
+)
+
+# Berechnung der durchschnittlichen Degree-Centrality pro Community
+community_degree_summary <- community_degree_df %>%
+  group_by(Community) %>%
+  summarise(
+    Durchschnittliche_Degree = mean(Degree, na.rm = TRUE),
+    Maximale_Degree = max(Degree, na.rm = TRUE),
+    Minimale_Degree = min(Degree, na.rm = TRUE),
+    Anzahl_Mitglieder = n()
+  ) %>%
+  arrange(desc(Durchschnittliche_Degree))
+
+knitr::kable(
+  community_degree_summary,
+  align = "c",
+  col.names = c("Community", "Durchschnittliche Degree", "Maximale Degree", "Minimale Degree", "Anzahl Mitglieder"),
+  caption = "Zusammenfassung der Degree-Centrality je Community"
+)
+```
+
+Die Analyse der Community Degree-Centrality zeigt, dass das **Grand Rapids Pack**(4), das **South Athabasca Pack**(3) und das **Horizon Pack**(9) die höchsten durchschnittlichen Verbindungen innerhalb ihrer Gruppen aufweisen, was auf enge soziale Strukturen und einen starken Zusammenhalt hindeutet. 
+Das **Grand Rapids Pack**(4) hat mit einem Mittelwert von 3,25 die stärkste Vernetzung, gefolgt vom **South Athabasca Pack**(3) und dem **Horizon Pack**(9) mit jeweils 3,0. 
+Im Gegensatz dazu ist das **McLelland Pack**(1) mit einem Wert von 0 völlig isoliert, was auf einen Einzelgänger hindeutet. 
+Die Ergebnisse zeigen, dass einige Gruppen stark in das Netzwerk integriert sind, während andere kaum Verbindungen aufweisen und isolierter agieren.
+
+\pagebreak
+
+## Harmonic-Closeness-Centrality
+
+Harmonic Closeness Centrality ist eine Variante der Closeness-Zentralität und eignet sich besonders für Netzwerke, die nicht vollständig miteinander verbunden sind. 
+Sie misst die Effizienz, mit der ein Wolf Informationen oder Ressourcen im Netzwerk erreichen kann, indem sie berechnet, wie nahe einem Wolf im Durchschnitt zu allen anderen Wölfen ist. 
+Diese Metrik basiert auf der Anzahl der Schritte zwischen den Knoten und berücksichtigt Lücken im Netzwerk, was eine differenzierte Analyse der Verbindungen ermöglicht, insbesondere bei saisonalen Schwankungen. 
+
+```{r}
+harmonic_closeness_centrality <- harmonic_centrality(interaction_igraph, mode = "all")
+
+# NaN-Werte durch 0 ersetzen
+harmonic_closeness_centrality <- replace_na(harmonic_closeness_centrality, 0)
+
+harmonic_closeness_df <- data.frame(
+  Wolf = V(interaction_igraph)$name,
+  Geschlecht = V(interaction_igraph)$sex,
+  Harmonic_Closeness = round(harmonic_closeness_centrality, 3)
+)
+
+harmonic_closeness_df$Wolf <- factor(harmonic_closeness_df$Wolf, levels = as.character(sort(as.numeric(harmonic_closeness_df$Wolf))))
+
+# Berechnung der Textpositionen und -farben
+harmonic_closeness_df$label_y <- ifelse(harmonic_closeness_df$Harmonic_Closeness < 0.5,
+                                        harmonic_closeness_df$Harmonic_Closeness + 0.3,
+                                        harmonic_closeness_df$Harmonic_Closeness / 2)
+harmonic_closeness_df$label_color <- ifelse(harmonic_closeness_df$Harmonic_Closeness < 0.5, "black", "white")
+
+sex_colors <- c("m" = "darkblue", "f" = "#D60093")
+
+png("Bilder/woelfe_harmonic_closeness.png", width = 800, height = 500, res = 120)
+ggplot(harmonic_closeness_df, aes(x = Wolf, y = Harmonic_Closeness, fill = Geschlecht)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = Harmonic_Closeness, y = label_y, color = label_color), angle = 90, size = 4, fontface="bold") +
+  scale_fill_manual(values = sex_colors, name = "Geschlecht") + 
+  scale_color_identity() + 
+  labs(x = "Wolf",
+       y = "Harmonic Closeness-Centrality") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+dev.off()
+```
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{Bilder/woelfe_harmonic_closeness.png}
+\caption{Harmonic Closeness-Centrality der Wölfe im Netzwerk}
+\end{figure}
+
+Ein besonders hoher Wert der Harmonic Closeness Centrality, wie ihn **Wolf 16** mit 3,641 erreicht, deutet darauf hin, dass dieser Wolf eine zentrale Vermittlerrolle im Netzwerk einnimmt und schnellen Zugang zu anderen Wölfen hat. 
+Diese hohe Zentralität macht ihn zu einem potenziellen Schlüsselakteur in der Sozialstruktur seines Rudels und des gesamten Netzwerkes. 
+Wölfe wie **Wolf 14 (2.781), Wolf 12 (2.587)** und **Wolf 2 (2.531)** weisen ebenfalls hohe Harmonic Closeness-Werte auf.
+Diese Tiere haben ebenfalls effiziente Verbindungen zu vielen anderen Wölfen und könnten daher eine wichtige Rolle bei der Verteilung von Informationen und Ressourcen innerhalb des Rudels spielen. 
+
+```{r}
+berechne_season_harmonic_closeness <- function(data, vertices, season_name) {
+  season_igraph <- graph_from_data_frame(data, directed = FALSE, vertices = vert_data)
+  E(season_igraph)$weight <- data$treffen
+  V(season_igraph)$sex <- vertices$animal.sex
+
+  harmonic_closeness <- harmonic_centrality(season_igraph, mode = "all")
+    
+  return(harmonic_closeness)
+}
+
+harmonic_fruehling <- berechne_season_harmonic_closeness(woelfe %>% filter(season == "Frühling"), vert.attr, "Frühling")
+harmonic_sommer <- berechne_season_harmonic_closeness(woelfe %>% filter(season == "Sommer"), vert.attr, "Sommer")
+harmonic_herbst <- berechne_season_harmonic_closeness(woelfe %>% filter(season == "Herbst"), vert.attr, "Herbst")
+harmonic_winter <- berechne_season_harmonic_closeness(woelfe %>% filter(season == "Winter"), vert.attr, "Winter")
+
+# Helper-Funktion zum Runden und Formatieren
+format_value <- function(x) {
+  ifelse(x == 0, "0", sprintf("%.3f", x))
+}
+
+# DataFrame mit gerundeten Harmonic Closeness-Centrality Werten erstellen und NA durch 0 ersetzen
+harmonic_closeness_df <- data.frame(
+  Wolf = wolf_names,
+  Geschlecht = wolf_sex,
+  Frühling = format_value(replace_na(harmonic_fruehling[wolf_names], 0)),
+  Sommer = format_value(replace_na(harmonic_sommer[wolf_names], 0)),
+  Herbst = format_value(replace_na(harmonic_herbst[wolf_names], 0)),
+  Winter = format_value(replace_na(harmonic_winter[wolf_names], 0)),
+  Gesamt = format_value(replace_na(harmonic_centrality(interaction_igraph, mode = "all")[wolf_names], 0))
+)
+
+knitr::kable(
+  harmonic_closeness_df, 
+  align = "c", 
+  col.names = c("Wolf", "Geschlecht", "Frühling", "Sommer", "Herbst", "Winter", "Gesamt"), 
+  row.names = FALSE,
+  caption = "Harmonic Closeness-Centrality je Wolf und Saison"
+)
+```
+```{r warning=FALSE, message=FALSE}
+harmonic_closeness_df <- data.frame(
+  Wolf = wolf_names,
+  Geschlecht = wolf_sex,
+  Frühling = as.numeric(format_value(replace_na(harmonic_fruehling[wolf_names], 0))),
+  Sommer = as.numeric(format_value(replace_na(harmonic_sommer[wolf_names], 0))),
+  Herbst = as.numeric(format_value(replace_na(harmonic_herbst[wolf_names], 0))),
+  Winter = as.numeric(format_value(replace_na(harmonic_winter[wolf_names], 0)))
+)
+
+harmonic_closeness_long <- melt(harmonic_closeness_df, id.vars = c("Wolf", "Geschlecht"), 
+                                variable.name = "Saison", value.name = "Harmonic_Closeness")
+
+wolf_order <- harmonic_closeness_long %>%
+  group_by(Wolf) %>%
+  summarise(Max_Harmonic = max(Harmonic_Closeness, na.rm = TRUE)) %>%
+  arrange(desc(Max_Harmonic)) %>%
+  pull(Wolf)
+
+harmonic_closeness_long$Wolf <- factor(harmonic_closeness_long$Wolf, levels = wolf_order)
+harmonic_closeness_long$Saison <- factor(harmonic_closeness_long$Saison, levels = c("Frühling", "Sommer", "Herbst", "Winter"))
+
+png("Bilder/heatmap_harmonic_closeness.png", width = 800, height = 500, res = 120)
+ggplot(harmonic_closeness_long, aes(x = Wolf, y = Saison, fill = Harmonic_Closeness)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "#f2acb1", high = "#140101", name = "Harmonic Closeness-Centrality") +
+  labs(x = "Wolf",
+       y = "Jahreszeit") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, face = "bold", 
+                                   color = sex_colors[as.character(harmonic_closeness_df$Geschlecht)]),
+        legend.position = "bottom")
+dev.off()
+```
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{Bilder/heatmap_harmonic_closeness.png}
+\caption{Heatmap der Harmonic Closeness-Centrality der Wölfe nach Jahreszeit}
+\end{figure}
+
+Die Harmonic Closeness Centrality ist besonders nützlich für die Analyse von Lücken in saisonalen Netzwerken, da sie misst, wie effizient ein Wolf Zugang zu anderen Wölfen hat. 
+Die Analyse zeigt, dass **Wölfe wie 16, 15** und **4** im Frühling und Herbst hohe Harmonic Closeness Werte erreichen und in diesen Jahreszeiten eine zentrale Vermittlerrolle einnehmen. 
+Insbesondere im Frühjahr weisen auch die **Wölfe 6, 2, 15, 4, 27, 22** und **14** hohe Werte auf, was auf intensive soziale Interaktionen während der Paarungszeit hinweist. 
+Diese saisonale Variation der Harmonic Closeness könnte mit der erhöhten Fortpflanzungsaktivität im Frühling und der Vorbereitung auf den Winter im Herbst zusammenhängen. 
+Im Sommer und Winter hingegen nimmt die Vermittlerrolle der Wölfe ab, was auf eine Reduktion der sozialen Interaktionen und des Bedarfs an Vernetzung hindeutet. 
+Die saisonale Anpassung, besonders deutlich bei **Wolf 16**, zeigt die Flexibilität der sozialen Struktur der Wölfe, da sich die Rollen je nach Jahreszeit ändern, um das Überleben und die Effizienz des Rudels zu fördern. 
+
+```{r}
+harmonic_closeness_centrality <- harmonic_centrality(interaction_igraph, mode = "all")
+V(interaction_igraph)$harmonic_closeness <- harmonic_closeness_centrality
+
+community_harmonic_closeness_df <- data.frame(
+  Wolf = V(interaction_igraph)$name,
+  Community = V(interaction_igraph)$community,
+  Harmonic_Closeness = V(interaction_igraph)$harmonic_closeness
+)
+
+# Berechnung der durchschnittlichen, maximalen und minimalen Harmonic Closeness-Centrality pro Community
+community_harmonic_closeness_summary <- community_harmonic_closeness_df %>%
+  group_by(Community) %>%
+  summarise(
+    Durchschnittliche_Harmonic_Closeness = round(mean(Harmonic_Closeness, na.rm = TRUE), 3),
+    Maximale_Harmonic_Closeness = round(max(Harmonic_Closeness, na.rm = TRUE), 3),
+    Minimale_Harmonic_Closeness = round(min(Harmonic_Closeness, na.rm = TRUE), 3),
+    Anzahl_Mitglieder = n()
+  ) %>%
+  arrange(desc(Durchschnittliche_Harmonic_Closeness))
+
+knitr::kable(
+  community_harmonic_closeness_summary,
+  align = "c",
+  col.names = c("Community", "Durchschnittliche Harmonic Closeness", "Maximale Harmonic Closeness", "Minimale Harmonic Closeness", "Anzahl Mitglieder"),
+  caption = "Zusammenfassung der Harmonic Closeness-Centrality je Community"
+)
+```
+Die Analyse der **Harmonic Closeness Centrality** zeigt deutliche Unterschiede in der sozialen Vernetzung der Communities. 
+Das **Horizon Pack**(9) und das **Ells Pack**(2) weisen mit Werten von **2,429** bzw. **2,295** die höchste Vernetzung auf, was auf eine starke interne Struktur und effiziente Kommunikation hindeutet. 
+Das **North Pack**(5) hat eine moderate Vernetzung mit einem Durchschnittswert von **1,418**, wobei einige Wölfe zentralere Rollen übernehmen als andere. 
+Im Gegensatz dazu sind die **Steepbank(6), McKay/Frostbite(7), Clearwater Packs(8/10)** und besonders das **McLelland Pack(1)** mit einem Wert von **0** stark isoliert und haben kaum Verbindungen zu anderen Wölfen. 
+Diese Ergebnisse verdeutlichen, dass einige Gruppen im Netzwerk stark vernetzt und integriert sind, während andere kaum Verbindungen aufweisen und eher isoliert agieren.
+
+\pagebreak
+
+## Betweenness-Centrality für die Rudel
+
+Die Betweenness-Centrality ist für die Analyse von Rudeln als Gruppen im Netzwerk besonders relevant, da sie angibt, wie oft ein Knoten auf den kürzesten Verbindungswegen zwischen anderen Knoten liegt. 
+Ein Cluster mit hoher Betweenness-Centrality fungiert somit als Vermittler oder Brücke zwischen verschiedenen Communities und fördert die strukturelle Integration des gesamten Netzwerks. 
+
+Für einzelne Wölfe ist die Betweenness-Centrality weniger relevant, da ihre Bedeutung primär durch die Degree Centrality (Anzahl direkter Kontakte) oder die Closeness Centrality (Erreichbarkeit innerhalb des Rudels) bestimmt wird. 
+Einzelne Wölfe interagieren hauptsächlich innerhalb ihres eigenen Rudels und ihre Rolle und Funktion bezieht sich hauptsächlich auf die interne Rudeldynamik und nicht auf das gesamte Netzwerk.^[Vgl. @blanche_wolfe_2006]
+Da Wölfe territoriale und stark rudelorientierte Sozialstrukturen haben^[Vgl. @blanche_wolfe_2006 vgl. dazu auch @zimen_wolfe_1997], übernehmen sie normalerweise keine Vermittlerrolle zwischen Rudeln. 
+Solche Rollen werden auf Gruppenebene gemessen, da die Interaktionen der Wölfe primär innerhalb ihres jeweiligen Rudels stattfinden. 
+
+$\\$
+```{r}
+betweenness_values <- betweenness(interaction_igraph, normalized = TRUE)
+
+V(interaction_igraph)$betweenness <- betweenness_values
+
+# Erstellen eines DataFrames mit Community und Betweenness-Werten
+community_betweenness_df <- data.frame(
+  Wolf = V(interaction_igraph)$name,
+  Community = V(interaction_igraph)$community,
+  Betweenness = V(interaction_igraph)$betweenness
+)
+
+# Funktion zum Formatieren: Zeigt 0 ohne Nachkommastellen, andere Werte auf zwei Dezimalstellen gerundet
+format_betweenness <- function(x) {
+  ifelse(x == 0, "0", format(round(x, 5), nsmall = 5))
+}
+
+community_betweenness_summary <- community_betweenness_df %>%
+  group_by(Community) %>%
+  summarise(Average_Betweenness = mean(Betweenness, na.rm = TRUE)) %>%
+  arrange(desc(Average_Betweenness))
+
+community_betweenness_summary$Average_Betweenness <- format_betweenness(community_betweenness_summary$Average_Betweenness)
+
+knitr::kable(
+  community_betweenness_summary, 
+  align = "c", 
+  col.names = c("Community", "Durchschnittliche Betweenness"), 
+  row.names = FALSE,
+  caption = "Durchschnittliche Betweenness-Centrality je Community"
+)
+```
+Das **Horizon Pack**(9) zeigt die höchste durchschnittliche Betweenness-Centrality **(0,06125)**, was darauf hindeutet, dass seine Mitglieder häufig als Vermittler zwischen anderen Wölfen fungieren und somit eine zentrale Rolle in der Netzwerkstruktur übernehmen. 
+Auch das **North Pack**(5) und das **South Athabasca Pack**(3) weisen moderate Betweenness-Werte auf **(0,01709 bzw. 0,00855)**, was gelegentliche Vermittlungsfunktionen innerhalb dieser Gruppen anzeigt. 
+Im Gegensatz dazu haben die **Ells(2), Grand Rapid(4), Steepbank(6)** sowie **McKay/Frostbite Packs(7)** sehr niedrige Betweenness-Werte, was darauf schließen lässt, dass ihre Verbindungen primär rudelintern sind. 
+Die **Clearwater Packs**(8/19) und das **McLelland Pack**(1) haben eine Betweenness-Centrality von **0**, was auf vollständige Isolation und das Fehlen einer Vermittlerrolle im Netzwerk hinweist.
+
+\pagebreak
+# Conclusion
+
+## Ranking und Erklärung der Ergebnisse 
+
+Die Analyse des sozialen Netzwerks der Wölfe zeigt eine komplexe, aber weniger stark ausgeprägte soziale Struktur, die sich durch klare Gruppengrenzen und bestimmte zentrale Rollen innerhalb der Population auszeichnet. 
+Anhand der drei zentralen Netzwerkmetriken – *Degree, Harmonic Closeness und Betweenness* – konnten die Wölfe nach ihrer sozialen Bedeutung gerankt werden. 
+
+```{r}
+format_rank <- function(x) {
+  ifelse(x %% 1 == 0, as.integer(x), format(round(x, 2), nsmall = 2))
+}
+
+# Berechnen der Rangwerte für die 3 Kriterien
+degree_rank <- rank(-degree_centrality)  
+harmonic_closeness_rank <- rank(-harmonic_closeness_centrality)
+
+ranking_df <- data.frame(
+  Wolf = V(interaction_igraph)$name,
+  Community = V(interaction_igraph)$community,
+  Degree_Rank = format_rank(degree_rank),
+  Harmonic_Closeness_Rank = format_rank(harmonic_closeness_rank)
+)
+
+ranking_df$Average_Rank <- format_rank(rowMeans(cbind(degree_rank, harmonic_closeness_rank)))
+
+# Sortieren nach Durchschnittsrang
+ranking_df <- ranking_df %>%
+  arrange(as.numeric(Average_Rank))
+
+knitr::kable(
+  ranking_df, 
+  col.names = c("Wolf", "Community", "Degree Rank", "Harmonic Closeness Rank", "Durchschnittlicher Rang"),
+  align = "c", 
+  row.names = FALSE,
+  caption = "Endgültige Rangliste der Wölfe"
+)
+```
+```{r}
+# Identifiziere die Top-5 Wölfe basierend auf dem Durchschnittsrang
+top5_wolves <- ranking_df$Wolf[1:5]
+
+wolf_names <- V(interaction_igraph)$name
+wolf_groups <- rep("Andere", length(wolf_names))  
+
+for (i in seq_along(top5_wolves)) {
+  wolf_groups[which(wolf_names == top5_wolves[i])] <- paste0("Top", i)
+}
+
+group_levels <- c("Top1", "Top2", "Top3", "Top4", "Top5", "Andere")
+group_colors <- c("#f79b06", "#b0a80a", "#3e9718", "#823a9d", "#6650c8", "#434141")
+names(group_colors) <- group_levels
+
+png("Bilder/network_top5_wolves.png", width = 850, height = 500, res = 120)
+ggraph(interaction_igraph, layout = "sugiyama") +
+  geom_edge_link(aes(color = weight),
+                 end_cap = circle(3, 'mm'),
+                 start_cap = circle(3, 'mm'),
+                 width = 1) +
+  geom_node_point(aes(fill = factor(wolf_groups, levels = group_levels), color = sex), shape = 21, size = 7, stroke = 1) +
+  geom_node_text(aes(label = name), color = "white", size = 4, fontface = "bold") +
+  scale_fill_manual(values = group_colors, name = "Ranking") +
+  scale_color_manual(values = c("m" = "#58b6de", "f" = "#D60093"), name = "Geschlecht") +
+  scale_edge_colour_gradient(low = "#eaadad", high = "#300000", name = "Anzahl\nBegegnungen") +
+  theme_graph(base_family = 'Helvetica', base_size = 10) +
+  theme(legend.position = "bottom")
+dev.off()
+```
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{Bilder/network_top5_wolves.png}
+\caption{Soziales Netzwerk der Wölfe mit den Top-5 Wölfen basierend auf dem Durchschnittsrang}
+\end{figure}
+
+Die zentralsten Wölfe, insbesondere **Wolf 16** und **Wolf 12**, übernehmen Schlüsselfunktionen im Netzwerk und fungieren als „*soziale Knotenpunkte*“, die andere Rudelmitglieder oder sogar unterschiedliche Rudel miteinander verbinden. 
+Diese zentrale Rolle könnte als eine Art „*Anführerschaft*“ interpretiert werden, die insbesondere den sozialen Zusammenhalt in der Population stärkt.
+
+
+```{r}
+format_rank <- function(x) {
+  ifelse(x %% 1 == 0, as.integer(x), format(round(x, 2), nsmall = 2))
+}
+
+# Degree-Centrality-Ranking für jede Community berechnen
+community_degree_summary <- community_degree_df %>%
+  group_by(Community) %>%
+  summarise(Durchschnittliche_Degree = mean(Degree, na.rm = TRUE)) %>%
+  mutate(Degree_Rank = rank(-Durchschnittliche_Degree)) %>%
+  select(Community, Degree_Rank)
+
+# Harmonic Closeness-Centrality-Ranking für jede Community berechnen
+community_harmonic_closeness_summary <- community_harmonic_closeness_df %>%
+  group_by(Community) %>%
+  summarise(Durchschnittliche_Harmonic_Closeness = mean(Harmonic_Closeness, na.rm = TRUE)) %>%
+  mutate(Harmonic_Closeness_Rank = rank(-Durchschnittliche_Harmonic_Closeness)) %>%
+  select(Community, Harmonic_Closeness_Rank)
+
+# Betweenness-Centrality-Ranking für jede Community berechnen
+community_betweenness_summary <- community_betweenness_df %>%
+  group_by(Community) %>%
+  summarise(Durchschnittliche_Betweenness = mean(Betweenness, na.rm = TRUE)) %>%
+  mutate(Betweenness_Rank = rank(-Durchschnittliche_Betweenness)) %>%
+  select(Community, Betweenness_Rank)
+
+# Zusammenführen der Rankings in eine Tabelle und Berechnung des Durchschnittsrangs
+community_ranking <- community_degree_summary %>%
+  inner_join(community_harmonic_closeness_summary, by = "Community") %>%
+  inner_join(community_betweenness_summary, by = "Community") %>%
+  mutate(Durchschnitts_Rank = rowMeans(select(., Degree_Rank, Harmonic_Closeness_Rank, Betweenness_Rank))) %>%
+  arrange(Durchschnitts_Rank)
+
+community_ranking$Durchschnitts_Rank <- format_rank(community_ranking$Durchschnitts_Rank)
+community_ranking$Degree_Rank <- format_rank(community_ranking$Degree_Rank)
+community_ranking$Harmonic_Closeness_Rank <- format_rank(community_ranking$Harmonic_Closeness_Rank)
+community_ranking$Betweenness_Rank <- format_rank(community_ranking$Betweenness_Rank)
+
+knitr::kable(
+  community_ranking,
+  col.names = c("Community", "Degree Rank", "Harmonic Closeness Rank", "Betweenness Rank", "Durchschnittlicher Rang"),
+  align = "c",
+  caption = "Rangliste der Rudel"
+)
+```
+```{r}
+# Top-3 Communities identifizieren
+top3_communities <- as.integer(community_ranking$Community[1:3])
+
+community_names <- V(interaction_igraph)$community
+wolf_names <- V(interaction_igraph)$name  
+
+community_groups <- rep("Andere", length(community_names))
+for (i in seq_along(top3_communities)) {
+  community_groups[community_names == top3_communities[i]] <- paste0("Top", i)
+}
+
+com_group_levels <- c("Top1", "Top2", "Top3", "Andere")
+com_group_colors <- c("#FF5733", "#33FF57", "#3357FF", "#D3D3D3")
+names(com_group_colors) <- com_group_levels
+
+wolf_community_df <- data.frame(Wolf = wolf_names, Community = community_names, Gruppe = community_groups)
+
+V(interaction_igraph)$Gruppe <- community_groups
+
+png("Bilder/network_top3_communities.png", width = 900, height =600, res = 120)
+ggraph(interaction_igraph, layout = "fr") +
+  geom_edge_link(show.legend = FALSE) +
+  geom_node_point(aes(fill = as.factor(community), color = Gruppe), shape = 21, size = 5, stroke = 2) +
+  geom_node_text(aes(label = name), color = "black", size = 3, fontface = "bold") +
+  scale_fill_brewer(palette = "Set3", name = "Community:") +
+  scale_color_manual(values = com_group_colors, name = "Ranking:") +
+  theme_void() +
+  theme(legend.position = "bottom")
+dev.off()
+```
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{Bilder/network_top3_communities.png}
+\caption{Soziales Netzwerk der Wölfe mit den Top-3 Communities basierend auf dem Durchschnittsrang}
+\end{figure}
+
+\pagebreak
+
+**Beantwortung der Forschungsfrage und Hypothesenprüfung:** 
+
+\begin{enumerate}
+  \item \textbf{Saisonale Variation der sozialen Interaktionen}: Die Daten bestätigen, dass soziale Bindungen im Winter und Frühling besonders intensiv sind. Im Winter fördern knappe Ressourcen und die Notwendigkeit gemeinsamer Jagdstrategien engere Kontakte, während im Frühling die Paarungszeit und die Aufzucht der Welpen die sozialen Interaktionen verstärken. Diese saisonale Variation unterstützt die Hypothese, dass das Sozialverhalten der Wölfe an die Jahreszeiten angepasst ist, um die Überlebens- und Reproduktionschancen zu maximieren.
+
+  \item \textbf{Isolation der Rudel}: Die Analyse zeigt, dass die meisten Kontakte rudelintern stattfinden, was die Hypothese zur Isolation der Rudel größtenteils bestätigt. Die Degree-Centrality und die Closeness-Werte in einigen Communities (wie 1 und 6) weisen darauf hin, dass bestimmte Rudel isoliert sind oder kaum Kontakte zu anderen Gruppen haben. Dennoch gibt es auch Ausnahmen, da einige Rudel intensive Verbindungen zueinander pflegen. Diese Mischung aus Isolation und Vernetzung zeigt, dass die soziale Struktur der Wölfe flexibel ist und sich je nach Bedarf und Jahreszeit verändern kann.
+
+  \item \textbf{Zentrale Position der Alpha-Wölfe}: Die Ergebnisse zeigen, dass Alpha-Wölfe und sozial aktive Individuen oft zentrale Positionen im Netzwerk einnehmen und eine Schlüsselrolle für die Stabilität und den Zusammenhalt der Rudel spielen. Interessanterweise belegen die höchsten Positionen im Netzwerk sowohl Weibchen (Top 1, 3 und 4) als auch Männchen (Top 2 und 5). Diese Mischung deutet darauf hin, dass sowohl weibliche als auch männliche Wölfe die soziale Struktur aktiv gestalten und möglicherweise unterschiedliche, aber komplementäre Rollen in der Führung und Koordination des Rudels übernehmen.
+\end{enumerate}
+
+
+Die Netzwerk-Analyse der Wölfe zeigt, dass die soziale Struktur sowohl stabilisierende als auch isolierende Elemente umfasst. 
+Einige Packs sind stark vernetzt und gut integriert, während andere isolierter oder durch Einzelgänger wie Wolf 1 geprägt sind, der keinerlei Kontakte aufweist. 
+Die zentralen Wölfe, Weibchen sowohl Männchen fungieren als Bindeglieder und stabilisieren die sozialen Beziehungen innerhalb und zwischen den Rudeln. 
+Diese Ergebnisse bieten wertvolle Einblicke in das Sozialverhalten und die dynamische Struktur der Wolfspopulation und unterstützen die Annahmen über saisonale Anpassungen, die Isolation von Rudeln und die bedeutende Rolle zentraler Individuen in der Gruppenhierarchie. 
+
+## Kritik 
+
+Die Analyse leidet unter der *begrenzten Qualität und Quantität der GPS-Daten*, die nur eine Momentaufnahme der sozialen Interaktionen liefern und saisonale und situationsbedingte Schwankungen nicht vollständig erfassen.
+Externe Faktoren wie *Nahrungsangebot* und *Klima*, die die Sozialstruktur beeinflussen, bleiben unberücksichtigt und können zu Verzerrungen führen. 
+
+Die hohe *Fehlertoleranz der GPS-Tracker* führte dazu, dass fast die Hälfte der Datenpunkte eliminiert werden musste, wodurch sich die Anzahl der erfassten Kontakte und Rudelmitglieder reduzierte. 
+Aufgrund *fehlender Geschlechtsangaben* wurden zusätzlich 16 Wölfe ausgeschlossen, was die Interpretation der Rudelstruktur einschränkt - möglicherweise ist Wolf 1 kein Einzelgänger und einige Rudel haben mehr Mitglieder. 
+
+Da die *Aufzeichnungen unregelmäßig* waren, basiert die Analyse auf der Anzahl der Tage mit gemeinsamen Aufzeichnungen und nicht auf der genauen Häufigkeit pro Tag, was die Darstellung der sozialen Dynamik beeinträchtigen könnte. 
+Außerdem wurden die Koordinaten für die Datenverarbeitung gekürzt, was die *Genauigkeit der Treffpunkte* beeinflussen kann, aber notwendig war, da *exakte Koordinaten zu weniger Treffpunkten* geführt hätten. 
+
+\pagebreak
+
+## Ausblick 
+
+Zukünftige Arbeiten könnten auf dem ursprünglichen Datensatz aufbauen und zusätzliche Variablen wie Außentemperaturen berücksichtigen, um saisonale Einflüsse detaillierter zu analysieren. 
+Die Bewegungsmuster der Wölfe könnten erfasst und ausgewertet werden, insbesondere im Winter, um Rückschlüsse auf kritische Ressourcen wie Wasser und Nahrung zu ziehen. 
+Auf dieser Grundlage könnten beispielsweise Futter- oder Wasserquellen in der Nähe der Wölfe platziert oder bestimmte Gebiete von menschlichen Outdoor-Aktivitäten freigehalten werden, um Störungen zu minimieren. 
+
+Die hohe Fehlertoleranz der GPS-Daten stellt eine methodische Herausforderung dar, da fast die Hälfte der Daten aufgrund von Ungenauigkeiten unbrauchbar war. 
+Zukünftige Studien könnten genauere GPS-Tracker oder alternative Ansätze zur Datenerhebung verwenden, um die Zuverlässigkeit der Ergebnisse zu verbessern. 
+Eine ergänzende Lösung könnte die Kombination mit alternativen Datenquellen sein, wie Verhaltensbeobachtungen oder genetische Analysen zur Bestimmung sozialer Bindungen und Hierarchien, die ein umfassenderes Bild der sozialen Strukturen liefern könnten. 
+
+Zusätzlich könnte die Analyse durch die Einbeziehung weiterer saisonaler Daten und Variablen wie Alter, Geschlecht und Rangordnung der Wölfe vertieft werden. 
+Eine Langzeitstudie würde zudem helfen, die Stabilität und Dynamik der sozialen Strukturen über die Zeit zu beobachten und den Einfluss von Umweltveränderungen auf die Gemeinschaften zu untersuchen. 
+Die Erweiterung des Netzwerkmodells um Umweltfaktoren und zusätzliche Zentralitätsmaße könnte so zu einem noch umfassenderen Verständnis der sozialen Dynamik in Wolfsrudeln beitragen. 
+
+\newpage
+\pagenumbering{Roman}
+\setcounter{page}{4} 
+\addcontentsline{toc}{section}{Anhang}
+\section*{Anhang}
+
+\begin{verbatim}
+# Gesamt Daten Satz 
+# Lade den Datensatz und zeige die ersten 10 Zeilen an
+wolfdata <- read.csv("../Abgabe_Zoé/Datenset/Boutin Alberta Grey Wolf.csv")  # Datei laden # nolint: line_length_linter.
+
+## Untersuchen
+head(wolfdata, 10)
+str(wolfdata)
+min_max_values <- wolfdata %>%
+  summarise_all(list(min = ~min(., na.rm = TRUE), max = ~max(., na.rm = TRUE)))
+print(min_max_values)
+
+## GPS Fehlertoleranz > 5 wurde gelöscht
+### Vor dem Löschen:
+nrow(wolfdata)
+
+wolfdata <- wolfdata %>%
+  filter(gps.dop <= 5) 
+
+### Nach dem Löschen:
+nrow(wolfdata)
+
+# Aufteilen in Jahreszeiten
+
+wolfdata$timestamp <- as.POSIXct(wolfdata$timestamp, format="%Y-%m-%d %H:%M:%S", tz="UTC")
+
+get_season <- function(date) {
+  month <- as.numeric(format(date, "%m"))
+  if (month %in% c(12, 1, 2)) {
+    return("Winter")
+  } else if (month %in% c(3, 4, 5)) {
+    return("Frühling")
+  } else if (month %in% c(6, 7, 8)) {
+    return("Sommer")
+  } else {
+    return("Herbst")
+  }
+}
+
+wolfdata$season <- sapply(wolfdata$timestamp, get_season)
+head(wolfdata, 10)
+
+## Teile den Datensatz in vier Gruppen nach den Jahreszeiten
+winter_data <- subset(wolfdata, season == "Winter")
+fruehling_data <- subset(wolfdata, season == "Frühling")
+sommer_data <- subset(wolfdata, season == "Sommer")
+herbst_data <- subset(wolfdata, season == "Herbst")
+
+cat("Winter Data:\n")
+print(head(winter_data, 10))
+
+cat("\nFrühling Data:\n")
+print(head(fruehling_data, 10))
+
+cat("\nSommer Data:\n")
+print(head(sommer_data, 10))
+
+
+cat("\nHerbst Data:\n")
+print(head(herbst_data, 10))
+
+cat("Anzahl der Zeilen im Winter Data:\n")
+print(nrow(winter_data))
+
+cat("\nAnzahl der Zeilen im Frühling Data:\n")
+print(nrow(fruehling_data))
+
+cat("\nAnzahl der Zeilen im Sommer Data:\n")
+print(nrow(sommer_data))
+
+cat("\nAnzahl der Zeilen im Herbst Data:\n")
+print(nrow(herbst_data))
+
+Kritik -> nicht die gleiche mengen erfassung der gps Daten: winter und frühling über 84.000, sommeer bei  44.000 und herbst bei fast 25.000
+
+## Identifikation der Wölfe
+all_identifiers <- sort(unique(wolfdata$individual.local.identifier))
+
+print("Alle individual.local.identifier im gesamten Datensatz (aufsteigend sortiert):")
+print(all_identifiers)
+
+### Welche Wölfe sind in allen Jahreszeiten getrackt worden?
+winter_identifiers <- unique(winter_data$individual.local.identifier)
+fruehling_identifiers <- unique(fruehling_data$individual.local.identifier)
+sommer_identifiers <- unique(sommer_data$individual.local.identifier)
+herbst_identifiers <- unique(herbst_data$individual.local.identifier)
+
+common_identifiers <- Reduce(intersect, list(winter_identifiers, fruehling_identifiers, sommer_identifiers, herbst_identifiers))
+
+print("individual.local.identifier, die in allen vier Datensätzen vorhanden sind:")
+print(common_identifiers)
+wolfdata <- wolfdata %>%
+  filter(individual.local.identifier %in% common_identifiers)
+
+wolfdata <- wolfdata %>%
+  mutate(original_identifier = individual.local.identifier)
+head(wolfdata, 10)
+
+reference_data <- read.csv("../Abgabe_Zoé/Datenset/Boutin Alberta Grey Wolf-reference-data.csv")
+reference_data
+
+### Konvertiere tag.id in character
+reference_data <- reference_data %>%
+  mutate(tag.id = as.character(tag.id))
+reference_data
+
+reference_data <- reference_data %>%
+  filter(animal.id %in% wolfdata$original_identifier)
+reference_data
+
+
+### Überprüfe, ob alle Datensätze ein Geschlecht haben und lösche die ohne Geschlecht
+kein_gender <- reference_data %>%
+  filter(is.na(animal.sex) | !(animal.sex %in% c("m", "f")))
+kein_gender
+
+kein_gender_ids <- kein_gender %>%
+  pull(animal.id)
+kein_gender_ids
+
+reference_data <- reference_data %>%
+  filter(!animal.id %in% kein_gender_ids) 
+
+reference_data
+nrow(wolfdata)
+
+wolfdata <- wolfdata %>%
+  filter(!original_identifier %in% kein_gender_ids) 
+
+### Überschreibe die individual.local.identifier auf Zahlen von 1 bis aufwärts
+wolfdata <- wolfdata %>%
+  mutate(individual.local.identifier = dense_rank(individual.local.identifier))
+
+identifier_mapping <- wolfdata %>%
+  select(original_identifier, individual.local.identifier) %>%
+  distinct()
+
+reference_data <- reference_data %>%
+  left_join(identifier_mapping, by = c("animal.id" = "original_identifier")) %>%
+  select(-animal.id) %>%
+  rename(animal.id = individual.local.identifier) %>%
+  arrange(animal.id)
+reference_data
+
+print("Zuordnung von ursprünglichen zu neuen Identifiern:")
+print(identifier_mapping)
+
+write.csv(reference_data, "../Abgabe_Zoé/Datenset/reference_data.csv", row.names = FALSE)
+
+print("Geänderte Referenzdaten:")
+print(head(reference_data, 10))
+
+print("Geänderte wolfdata:")
+print(head(wolfdata, 10))
+
+# Kombinationen von Längen- und Breitengraden
+wolfdata_cleaned <- wolfdata %>%
+  mutate(location.long = round(location.long, 1),
+         location.lat = round(location.lat, 2))
+
+wolfdata_cleaned <- wolfdata_cleaned %>%
+  mutate(kombination = paste(location.long, location.lat, sep = ", "))
+
+einzigartige_kombinationen <- wolfdata_cleaned %>%
+  select(location.long, location.lat, kombination) %>%
+  distinct() %>%
+  arrange(location.long, location.lat) %>%
+  mutate(ort = paste0("Ort_", row_number()))
+
+nrow(einzigartige_kombinationen)
+
+## Hinzufügen der Ortsnamen zu wolfdata_cleaned
+wolfdata_named <- wolfdata_cleaned %>%
+  left_join(einzigartige_kombinationen %>% select(kombination, ort), by = "kombination")
+
+print(head(wolfdata_named, 10)) 
+
+## Zähle die Häufigkeit jeder Kombination
+kombinationen_haeufigkeit <- wolfdata_named %>%
+  group_by(kombination) %>%
+  summarise(haeufigkeit = n(), .groups = "drop")
+
+kombinationen_haeufigkeit
+nrow(kombinationen_haeufigkeit)
+
+kombinationen <- wolfdata_named %>%
+  select(kombination, location.long, location.lat) %>%
+  distinct()
+
+
+# Orte erstellen
+wolfdata_date <- wolfdata_named %>%
+  mutate(date = as.Date(timestamp),
+         hour = as.numeric(format(as.POSIXct(timestamp), "%H")))
+
+wolfdata_date <- wolfdata_date %>%
+  group_by(date, hour) %>%
+  summarise(count = n(), .groups = 'drop')
+
+wolfdata_date
+
+print(wolfdata_named %>% select(location.long, location.lat, kombination, ort) %>% head(10))
+
+wolfdata_sorted <- wolfdata_named %>%
+  arrange(individual.local.identifier, timestamp)
+
+print(wolfdata_sorted %>% select(location.long, location.lat, kombination, ort) %>% head(10))
+
+wolfdata_orted <- wolfdata_sorted %>%
+  group_by(individual.local.identifier) %>%
+  mutate(next_lat = lead(location.lat),
+         next_long = lead(location.long)) %>%
+  ungroup()
+
+print(wolfdata_orted %>% select(location.long, location.lat, kombination, ort) %>% head(10))
+
+wolfdata_orted <- wolfdata_orted %>%
+  left_join(einzigartige_kombinationen , by = c("next_long" = "location.long", "next_lat" = "location.lat"), suffix = c("_from", "_to"))
+
+colnames(wolfdata_orted)
+
+print(wolfdata_orted %>% select(location.long, location.lat, kombination_from, kombination_to, ort_from, ort_to) %>% head(10))
+
+wolfdata_orted <- wolfdata_orted %>%
+  filter(!is.na(next_lat) & !is.na(next_long))
+----
+
+# Datenset erstellen:  Knoten-Wölfe Kanten-Nähe weight-wie oft sie sich in der nähe aufhalten
+
+colnames(wolfdata_orted)
+print(wolfdata_orted %>% select(location.long, location.lat, kombination_from, ort_from, ort_to) %>% head(10))
+
+wol1, wolf2 -> treffen ist die kante
+Treffen = halten sich an einem ort auf (kann mit ortsname erforscht werdren)
+weight -> wie oft treffen sie sich?
+Berechne die Treffpunkte
+
+treffpunkte <- wolfdata_orted %>%
+  group_by(ort_from, rounded_time = round_date(timestamp, "1 hour")) %>%
+  filter(n() > 1) %>% # mindestens zwei Wölfe gleichzeitig an diesem Ort
+  summarise(treffen = n(), .groups = 'drop') %>% # Anzahl der Treffen
+  ungroup()
+
+treffpunkte
+
+## Erstelle das Datenset mit Knoten (Wölfe) und Kanten (Treffen)
+wolf_treffen <- wolfdata_orted %>%
+  mutate(rounded_time = round_date(timestamp, "1 hour")) %>%
+  inner_join(treffpunkte, by = c("ort_from", "rounded_time")) %>%
+  select(individual.local.identifier, ort_from, rounded_time, treffen, season) %>%
+  mutate(datum = as.Date(rounded_time)) # Datum hinzufügen
+
+wolf_treffen
+
+## Erstelle eine Kombination von Wölfen, die sich zur gleichen Zeit am gleichen Ort treffen
+wolf_pairs <- wolf_treffen %>%
+  inner_join(wolf_treffen, by = c("ort_from", "rounded_time", "season", "datum"), suffix = c("_1", "_2"), relationship = "many-to-many") %>%
+  filter(individual.local.identifier_1 != individual.local.identifier_2) %>%
+  group_by(individual.local.identifier_1, individual.local.identifier_2, season, datum) %>%
+  summarise(weight = n(), .groups = 'drop')
+
+print(head(wolf_pairs, 10))
+
+## Spalten umbenennen für Klarheit
+wolf_pairs <- wolf_pairs %>%
+  rename(wolf_1 = individual.local.identifier_1, 
+         wolf_2 = individual.local.identifier_2)
+
+wolf_pairs <- wolf_pairs %>%
+  rowwise() %>%
+  mutate(pair_id = paste(sort(c(wolf_1, wolf_2)), collapse = "-")) %>%
+  ungroup() %>%
+  distinct(pair_id, datum, .keep_all = TRUE) %>%
+  select(-pair_id)
+
+
+wolf_pairs
+
+wolfknoten <- wolf_pairs %>%
+  group_by(wolf_1, wolf_2, season) %>%
+  summarise(treffen = n_distinct(datum), .groups = 'drop') 
+wolfknoten
+
+write.csv(wolfknoten, "../Abgabe_Zoé/Datenset/wolfknoten2.csv", row.names = FALSE)
+
+\end{verbatim}
+
+\newpage
+\input{erklaerungen/erklaerung_ki.tex}
+\addcontentsline{toc}{section}{Erklärung KI}
+
+\newpage
+\input{erklaerungen/_dhbw_erklaerung.tex}
+\addcontentsline{toc}{section}{Erklärung DHBW}
+
+\newpage
+\section*{Literaturverzeichnis}
+\addcontentsline{toc}{section}{Literaturverzeichnis}
+\printbibliography
