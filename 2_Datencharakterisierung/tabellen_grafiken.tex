@@ -106,6 +106,19 @@
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
 \usepackage{bookmark}
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
 \urlstyle{same}
@@ -123,6 +136,47 @@
 \CommentTok{\# Lade notwendige Bibliothek}
 \FunctionTok{library}\NormalTok{(readr)}
 \FunctionTok{library}\NormalTok{(knitr)}
+\FunctionTok{library}\NormalTok{(dplyr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Attaching package: 'dplyr'
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(kableExtra)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Attaching package: 'kableExtra'
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:dplyr':
+## 
+##     group_rows
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(webshot)}
 
 \CommentTok{\# Lade die CSV{-}Datei in ein DataFrame}
 \NormalTok{file\_path }\OtherTok{\textless{}{-}} \StringTok{"../1\_Datenset/ursprüngliche/netflix\_titles.csv"}
@@ -132,6 +186,9 @@
 
 \begin{verbatim}
 ## Rows: 8807 Columns: 12
+\end{verbatim}
+
+\begin{verbatim}
 ## -- Column specification --------------------------------------------------------
 ## Delimiter: ","
 ## chr (11): show_id, type, title, director, cast, country, date_added, rating,...
@@ -247,96 +304,33 @@ listed\_in & Nominal & Genres & ja \\
 description & Nominal & Kurzbeschreibung & ja \\
 \end{longtable}
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{\# Lade notwendige Bibliothek}
-\FunctionTok{library}\NormalTok{(readr)}
-\FunctionTok{library}\NormalTok{(knitr)}
+\section{Lade die CSV-Datei in ein
+DataFrame}\label{lade-die-csv-datei-in-ein-dataframe}
 
-\CommentTok{\# Lade die CSV{-}Datei in ein DataFrame}
-\NormalTok{file\_path }\OtherTok{\textless{}{-}} \StringTok{"../1\_Datenset/erstellte/fertig/fertig.csv"}
-\NormalTok{movies\_df }\OtherTok{\textless{}{-}} \FunctionTok{read\_csv}\NormalTok{(file\_path)}
-\end{Highlighting}
-\end{Shaded}
+file\_path \textless- ``../1\_Datenset/erstellte/fertig/shows.csv''
+movies\_df \textless- read\_csv(file\_path)
 
-\begin{verbatim}
-## Rows: 10204 Columns: 11
-## -- Column specification --------------------------------------------------------
-## Delimiter: ","
-## chr (11): show_id, type, title, director, cast, country, agerating, duration...
-## 
-## i Use `spec()` to retrieve the full column specification for this data.
-## i Specify the column types or set `show_col_types = FALSE` to quiet this message.
-\end{verbatim}
+\section{Erstelle ein neues DataFrame für die
+Tabelle}\label{erstelle-ein-neues-dataframe-fuxfcr-die-tabelle}
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{\# Erstelle ein neues DataFrame für die Tabelle}
-\NormalTok{spalten }\OtherTok{\textless{}{-}} \FunctionTok{colnames}\NormalTok{(movies\_df)}
-\NormalTok{beschreibung }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
-    \StringTok{"Einzigartige ID der Show"}\NormalTok{, }
-    \StringTok{"Film oder Serie"}\NormalTok{, }
-    \StringTok{"Titel der Show"}\NormalTok{, }
-    \StringTok{"Regisseur"}\NormalTok{, }
-    \StringTok{"Besetzung"}\NormalTok{,}
-    \StringTok{"Produktionsland"}\NormalTok{,}
-    \StringTok{"Altersfreigabe"}\NormalTok{,}
-    \StringTok{"Laufzeit in Minuten oder Staffeln"}\NormalTok{,}
-    \StringTok{"Genres"}\NormalTok{,}
-    \StringTok{"Kurzbeschreibung"}\NormalTok{,}
-    \StringTok{"Netflix oder Disney+"}
-\NormalTok{)}
-\NormalTok{relevanz }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
-    \StringTok{"nein"}\NormalTok{,}
-    \StringTok{"ja"}\NormalTok{,}
-    \StringTok{"ja"}\NormalTok{,}
-    \StringTok{"ja"}\NormalTok{,}
-    \StringTok{"ja"}\NormalTok{,}
-    \StringTok{"ja"}\NormalTok{,}
-    \StringTok{"ja"}\NormalTok{,}
-    \StringTok{"ja"}\NormalTok{,}
-    \StringTok{"ja"}\NormalTok{,}
-    \StringTok{"ja"}\NormalTok{,}
-    \StringTok{"ja"}
-\NormalTok{)}
+spalten \textless- colnames(movies\_df) beschreibung \textless- c(
+``Einzigartige ID der Show'', ``Film oder Serie'', ``Titel der Show'',
+``Regisseur'', ``Besetzung'', ``Produktionsland'', ``Altersfreigabe'',
+``Laufzeit in Minuten oder Staffeln'', ``Genres'', ``Kurzbeschreibung'',
+``Netflix oder Disney+'' ) relevanz \textless- c( ``nein'', ``ja'',
+``ja'', ``ja'', ``ja'', ``ja'', ``ja'', ``ja'', ``ja'', ``ja'', ``ja'' )
 
-\CommentTok{\# Kombiniere die Beschreibungen und Relevanzen in ein neues DataFrame}
-\NormalTok{tabelle\_df }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{Spalten =}\NormalTok{spalten, }\AttributeTok{Beschreibung =}\NormalTok{ beschreibung, }\AttributeTok{Relevanz =}\NormalTok{ relevanz)}
+\section{Kombiniere die Beschreibungen und Relevanzen in ein neues
+DataFrame}\label{kombiniere-die-beschreibungen-und-relevanzen-in-ein-neues-dataframe}
 
-\CommentTok{\# Zeige die Tabelle an}
-\FunctionTok{kable}\NormalTok{(}
-\NormalTok{  tabelle\_df,}
-  \AttributeTok{align =} \FunctionTok{c}\NormalTok{(}\StringTok{"r"}\NormalTok{, }\StringTok{"l"}\NormalTok{, }\StringTok{"c"}\NormalTok{),}
-  \AttributeTok{col.names =} \FunctionTok{c}\NormalTok{(}\StringTok{"Spalten"}\NormalTok{, }\StringTok{"Beschreibung"}\NormalTok{, }\StringTok{"Relevant?"}\NormalTok{),}
-  \AttributeTok{caption =} \StringTok{"Tabelle der Beschreibungen und Relevanzen"}
-\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
+tabelle\_df \textless- data.frame(Spalten =spalten, Beschreibung =
+beschreibung, Relevanz = relevanz)
 
-\begin{longtable}[]{@{}rlc@{}}
-\caption{Tabelle der Beschreibungen und Relevanzen}\tabularnewline
-\toprule\noalign{}
-Spalten & Beschreibung & Relevant? \\
-\midrule\noalign{}
-\endfirsthead
-\toprule\noalign{}
-Spalten & Beschreibung & Relevant? \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-show\_id & Einzigartige ID der Show & nein \\
-type & Film oder Serie & ja \\
-title & Titel der Show & ja \\
-director & Regisseur & ja \\
-cast & Besetzung & ja \\
-country & Produktionsland & ja \\
-agerating & Altersfreigabe & ja \\
-duration & Laufzeit in Minuten oder Staffeln & ja \\
-listed\_in & Genres & ja \\
-description & Kurzbeschreibung & ja \\
-platform & Netflix oder Disney+ & ja \\
-\end{longtable}
+\section{Zeige die Tabelle an}\label{zeige-die-tabelle-an}
+
+kable( tabelle\_df, align = c(``r'', ``l'', ``c''), col.names =
+c(``Spalten'', ``Beschreibung'', ``Relevant?''), caption = ``Tabelle der
+Beschreibungen und Relevanzen'' )
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -350,7 +344,7 @@ platform & Netflix oder Disney+ & ja \\
 
 \CommentTok{\# Passende Beschreibungen in der neuen Reihenfolge}
 \NormalTok{beschreibung }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}
-  \StringTok{"Für alle Kinder im Alter von 2 bis 6 Jahren geeignet"}\NormalTok{,}
+  \StringTok{"Für alle Kinder im Alter von 2 bis 6 Jahren geeignet."}\NormalTok{,}
   \StringTok{"Enthält milde Fantasie oder komödiantische Gewalt."}\NormalTok{,}
   \StringTok{"Enthält Fantasy{-}Gewalt, die kämpferischer ist als TVY7{-}Programme."}\NormalTok{,}
   \StringTok{"Für Zuschauer jeden Alters geeignet. Keine bedenklichen Inhalte."}\NormalTok{,}
@@ -374,72 +368,42 @@ platform & Netflix oder Disney+ & ja \\
   \AttributeTok{Beschreibung =}\NormalTok{ beschreibung}
 \NormalTok{)}
 
-\CommentTok{\# Zeige die Tabelle mit schöner Formatierung an}
+\CommentTok{\# Erstelle und speichere die Tabelle als HTML{-}Datei}
 \FunctionTok{kable}\NormalTok{(}
 \NormalTok{  tabelle\_df,}
   \AttributeTok{align =} \FunctionTok{c}\NormalTok{(}\StringTok{"l"}\NormalTok{, }\StringTok{"c"}\NormalTok{, }\StringTok{"l"}\NormalTok{),}
   \AttributeTok{col.names =} \FunctionTok{c}\NormalTok{(}\StringTok{"Bewertung"}\NormalTok{, }\StringTok{"Altersfreigabe"}\NormalTok{, }\StringTok{"Beschreibung"}\NormalTok{),}
   \AttributeTok{caption =} \StringTok{"Altersfreigaben und ihre Bedeutung"}\NormalTok{,}
   \AttributeTok{escape =} \ConstantTok{FALSE}
-\NormalTok{)}
+\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{kable\_styling}\NormalTok{(}\AttributeTok{full\_width =} \ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{column\_spec}\NormalTok{(}\DecValTok{1}\NormalTok{, }\AttributeTok{width =} \StringTok{"5em"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{column\_spec}\NormalTok{(}\DecValTok{3}\NormalTok{, }\AttributeTok{width =} \StringTok{"25em"}\NormalTok{, }\AttributeTok{extra\_css =} \StringTok{"word{-}wrap: break{-}word; white{-}space: normal;"}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
-\begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.0654}}
-  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2157}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.7190}}@{}}
-\caption{Altersfreigaben und ihre Bedeutung}\tabularnewline
-\toprule\noalign{}
-\begin{minipage}[b]{\linewidth}\raggedright
-Bewertung
-\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
-Altersfreigabe
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Beschreibung
-\end{minipage} \\
-\midrule\noalign{}
-\endfirsthead
-\toprule\noalign{}
-\begin{minipage}[b]{\linewidth}\raggedright
-Bewertung
-\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
-Altersfreigabe
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Beschreibung
-\end{minipage} \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-TV-Y & Für alle Kinder & Für alle Kinder im Alter von 2 bis 6 Jahren
-geeignet \\
-TV-Y7 & Ab 7 Jahren & Enthält milde Fantasie oder komödiantische
-Gewalt. \\
-TV-Y7 FV & Ab 7 Jahren mit Fantasy-Gewalt & Enthält Fantasy-Gewalt, die
-kämpferischer ist als TVY7-Programme. \\
-TV-G & Für alle Altersgruppen & Für Zuschauer jeden Alters geeignet.
-Keine bedenklichen Inhalte. \\
-TV-PG & Ab 10 Jahren mit Elternaufsicht & Vorgesehen für jüngere Kinder
-in Begleitung eines Erwachsenen. \\
-TV-14 & Ab 14 Jahren & Für Jugendliche ab 14 Jahren in begleitung eines
-Erwachsenen. Kann intensivere Themen oder Sprache enthalten. \\
-TV-MA & Ab 17 Jahren & Für Erwachsene. Kann starke Sprache, Gewalt oder
-sexuelle Inhalte enthalten. \\
-G & Für alle Altersgruppen & Für alle Altersgruppen geeignet. Keine
-bedenklichen Inhalte. \\
-PG & Ab 10 Jahren mit Elternaufsicht & Einige Inhalte könnten für
-jüngere Kinder ungeeignet sein. Elternaufsicht empfohlen. \\
-PG-13 & Ab 13 Jahren & Für Jugendliche ab 13 Jahren. Kann mildere Gewalt
-oder Sprache enthalten. Eltern werden gewarnt. \\
-R & Ab 17 Jahren & Für Erwachsene. Kann Gewalt, Drogenkonsum oder starke
-Sprache enthalten. \\
-NC-17 & Ab 18 Jahren & Nur für Erwachsene. Kann extreme Gewalt oder
-sexuelle Inhalte enthalten. \\
-NR & Keine Bewertung & Der Inhalt wurde nicht bewertet. Zuschauer
-sollten selbst entscheiden. \\
-UR & Keine Bewertung & Der Inhalt wurde nicht bewertet oder handelt sich
-um eine spezielle Version. Vorsicht geboten. \\
+\begin{longtable}[t]{>{\raggedright\arraybackslash}p{5em}c>{\raggedright\arraybackslash}p{25em}}
+\caption{\label{tab:unnamed-chunk-2}Altersfreigaben und ihre Bedeutung}\\
+\toprule
+Bewertung & Altersfreigabe & Beschreibung\\
+\midrule
+TV-Y & Für alle Kinder & Für alle Kinder im Alter von 2 bis 6 Jahren geeignet.\\
+TV-Y7 & Ab 7 Jahren & Enthält milde Fantasie oder komödiantische Gewalt.\\
+TV-Y7 FV & Ab 7 Jahren mit Fantasy-Gewalt & Enthält Fantasy-Gewalt, die kämpferischer ist als TVY7-Programme.\\
+TV-G & Für alle Altersgruppen & Für Zuschauer jeden Alters geeignet. Keine bedenklichen Inhalte.\\
+TV-PG & Ab 10 Jahren mit Elternaufsicht & Vorgesehen für jüngere Kinder in Begleitung eines Erwachsenen.\\
+\addlinespace
+TV-14 & Ab 14 Jahren & Für Jugendliche ab 14 Jahren in begleitung eines Erwachsenen. Kann intensivere Themen oder Sprache enthalten.\\
+TV-MA & Ab 17 Jahren & Für Erwachsene. Kann starke Sprache, Gewalt oder sexuelle Inhalte enthalten.\\
+G & Für alle Altersgruppen & Für alle Altersgruppen geeignet. Keine bedenklichen Inhalte.\\
+PG & Ab 10 Jahren mit Elternaufsicht & Einige Inhalte könnten für jüngere Kinder ungeeignet sein. Elternaufsicht empfohlen.\\
+PG-13 & Ab 13 Jahren & Für Jugendliche ab 13 Jahren. Kann mildere Gewalt oder Sprache enthalten. Eltern werden gewarnt.\\
+\addlinespace
+R & Ab 17 Jahren & Für Erwachsene. Kann Gewalt, Drogenkonsum oder starke Sprache enthalten.\\
+NC-17 & Ab 18 Jahren & Nur für Erwachsene. Kann extreme Gewalt oder sexuelle Inhalte enthalten.\\
+NR & Keine Bewertung & Der Inhalt wurde nicht bewertet. Zuschauer sollten selbst entscheiden.\\
+UR & Keine Bewertung & Der Inhalt wurde nicht bewertet oder handelt sich um eine spezielle Version. Vorsicht geboten.\\
+\bottomrule
 \end{longtable}
 
 \end{document}
